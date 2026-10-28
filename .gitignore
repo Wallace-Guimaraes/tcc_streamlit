@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+bases/
+armazenamento/
+*.sqlite*
+*.db
+*.csv
+.env
+.streamlit/secrets.toml
+.pytest_cache/
+dados/
+resultados/
+historico/
+.ipynb_checkpoints/
+
