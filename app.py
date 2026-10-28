@@ -1,14 +1,22 @@
 """Aplicação de anotação do TCC de Wallace e Vinicius."""
 import sqlite3
+import os
 from uuid import uuid4
 
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 
 from banco import salvar_anotacao
 from categorias import CATEGORIAS
 from dados import carregar_bases, sortear_registro
 
 st.set_page_config(page_title="Anotação de textos — TCC", layout="wide")
+try:
+    for nome_configuracao in ("URL_API", "CHAVE_API"):
+        if not os.environ.get(nome_configuracao) and nome_configuracao in st.secrets:
+            os.environ[nome_configuracao] = str(st.secrets[nome_configuracao])
+except (FileNotFoundError, StreamlitSecretNotFoundError):
+    pass  # No Docker, as configurações são fornecidas pelas variáveis de ambiente.
 st.markdown("""
 <style>
     .stMainBlockContainer { max-width: 1180px; padding: 2.6rem 1.4rem 1rem; }

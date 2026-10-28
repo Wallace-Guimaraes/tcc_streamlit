@@ -34,6 +34,14 @@ def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categor
     if not isinstance(idade, int) or isinstance(idade, bool) or not 1 <= idade <= 120:
         raise ValueError("Informe uma idade entre 1 e 120 anos.")
     validar_anotacao(registro["texto"], categorias, trecho, nenhuma)
+    endereco_api = os.environ.get("URL_API", "").strip()
+    if caminho is None:
+        if not endereco_api:
+            raise ValueError("Configure URL_API e CHAVE_API para gravar no PostgreSQL pela API.")
+        from cliente_api import enviar_anotacao
+
+        return enviar_anotacao(endereco_api, os.environ.get("CHAVE_API", ""), identificador,
+                               sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma)
     valores = (identificador, sessao_id, nome, idade, ip,
                datetime.now(timezone.utc).isoformat(timespec="seconds"), registro["id_registro"],
                registro["base_origem"], registro["sha256_texto"],
@@ -45,6 +53,9 @@ def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categor
 
 def exportar(caminho=None, saida=None, bases=None):
     from dados import carregar_bases
+
+    if caminho is None and os.environ.get("URL_API"):
+        raise ValueError("A coleta usa PostgreSQL remoto. Exporte pelo servidor do banco; este comando é apenas para o SQLite local.")
 
     caminho = Path(caminho) if caminho is not None else BANCO
     if not caminho.exists():

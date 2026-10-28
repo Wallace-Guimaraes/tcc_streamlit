@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: anotacoes
+      POSTGRES_USER: anotador
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute configurar.py primeiro}
+    volumes:
+      - banco_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anotador -d anotacoes"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://anotador:${POSTGRES_PASSWORD}@postgres:5432/anotacoes
+      CHAVE_API: ${CHAVE_API:?Execute configurar.py primeiro}
+    volumes:
+      - ./bases:/app/bases
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+    environment:
+      URL_API: http://api:8000
+      CHAVE_API: ${CHAVE_API}
+    volumes:
+      - ./bases:/app/bases
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  banco_postgres:

@@ -1,6 +1,10 @@
 [browser]
 gatherUsageStats = false
 
+[server]
+fileWatcherType = "none"
+runOnSave = false
+
 [theme]
 baseFontSize = 15
 

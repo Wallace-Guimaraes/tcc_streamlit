@@ -91,6 +91,7 @@ class TestesAnotacao(unittest.TestCase):
         # Uma base pequena exercita o formulário sem rede nem respostas reais.
         import banco
         with patch.object(banco, "BANCO", self.banco), \
+             patch("banco.salvar_anotacao", side_effect=lambda *args, **kwargs: salvar_anotacao(*args, **kwargs, caminho=self.banco)), \
              patch("dados.carregar_bases", return_value={"WHATSAPP": [self.registro]}):
             tela = AppTest.from_file(str(Path(__file__).with_name("app.py")), default_timeout=20).run()
             self.assertFalse(tela.exception)
