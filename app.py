@@ -24,6 +24,27 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: .55rem; }
     [data-testid="stMarkdownContainer"] h3 { padding: 0 0 .2rem; font-size: 1.45rem; }
     [data-testid="stForm"] { padding: .9rem 1rem; }
+    [data-testid="stFormSubmitButton"] button {
+        background-color: #0F766E !important;
+        border-color: #0F766E !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+    }
+    [data-testid="stFormSubmitButton"] button p { color: inherit !important; }
+    [data-testid="stFormSubmitButton"] button:hover:not(:disabled) {
+        background-color: #115E59 !important;
+        border-color: #115E59 !important;
+    }
+    [data-testid="stFormSubmitButton"] button:focus-visible {
+        outline: 3px solid #5EEAD4 !important;
+        outline-offset: 3px;
+    }
+    [data-testid="stFormSubmitButton"] button:disabled {
+        background-color: #334155 !important;
+        border-color: #64748B !important;
+        color: #CBD5E1 !important;
+        opacity: 1;
+    }
     [data-testid="stCheckbox"] { min-height: 1.8rem; }
     [data-testid="stCheckbox"] p { font-size: .93rem; }
     [data-testid="stTextArea"] textarea { font-size: .95rem; line-height: 1.5; }
