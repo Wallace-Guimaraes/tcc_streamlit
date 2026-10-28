@@ -39,9 +39,16 @@ class TestesAnotacao(unittest.TestCase):
             self.salvar(categorias=[])
         with self.assertRaises(ValueError):
             self.salvar(nenhuma=True)
-        self.assertTrue(self.salvar(categorias=[], nenhuma=True))
+        self.assertTrue(self.salvar(categorias=[], nenhuma=True, trecho=""))
         with closing(sqlite3.connect(self.banco)) as conexao:
-            self.assertEqual(json.loads(conexao.execute("SELECT estrategias_identificadas FROM anotacoes").fetchone()[0]), [])
+            categorias, trecho = conexao.execute("SELECT estrategias_identificadas, evidencia_textual FROM anotacoes").fetchone()
+            self.assertEqual(json.loads(categorias), [])
+            self.assertEqual(trecho, "")
+        saida = exportar(self.banco, bases={"WHATSAPP": [self.registro]})
+        with saida.open(encoding="utf-8-sig", newline="") as arquivo:
+            linha = next(csv.DictReader(arquivo))
+        self.assertEqual(linha["estrategias_identificadas"], "Nenhuma observável")
+        self.assertEqual(linha["evidencia_textual"], "")
 
     def test_salva_metadados_sem_duplicar_envio(self):
         nome = "Nome com 'aspas'"
@@ -95,11 +102,11 @@ class TestesAnotacao(unittest.TestCase):
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
             tela.checkbox[0].check().run()
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
-            tela.button[0].click().run()
+            next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
             self.assertTrue(tela.error)
             self.assertFalse(self.banco.exists())
             tela.text_area[1].input("Confirme hoje.")
-            tela.button[0].click().run()
+            next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
             self.assertFalse(tela.exception)
             with closing(sqlite3.connect(self.banco)) as conexao:
                 self.assertEqual(conexao.execute("SELECT COUNT(*) FROM anotacoes").fetchone()[0], 1)

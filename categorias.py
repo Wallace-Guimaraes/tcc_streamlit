@@ -20,6 +20,8 @@ def validar_anotacao(texto, categorias, trecho, nenhuma=False):
     if set(categorias) - CATEGORIAS.keys():
         raise ValueError("Há uma categoria que não pertence ao protocolo.")
     if not trecho.strip():
+        if nenhuma:
+            return
         raise ValueError("Preencha o trecho que justifica sua resposta.")
     # Cada linha pode ser uma passagem diferente do mesmo texto.
     texto_normalizado = " ".join(texto.casefold().split())

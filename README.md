@@ -14,13 +14,15 @@ python -m venv .venv
 
 Abra o endereço mostrado no terminal, normalmente `http://localhost:8501`.
 
+O formulário usa duas colunas no computador: texto à esquerda e resposta à direita. Textos longos têm rolagem dentro do próprio campo. As explicações das categorias ficam nos ícones de ajuda. Para alternar entre claro e escuro, abra o menu `⋮` no canto superior direito e escolha o tema. A interface também acompanha a preferência de tema do sistema.
+
 ## Como funciona
 
 O participante informa nome e idade. A aplicação escolhe uma das três bases com a mesma chance e sorteia um registro ainda não apresentado naquela sessão. São usados todos os registros das versões das bases do TCC, inclusive os que a fonte não marcou como fraude. A amostragem não é uniforme sobre o total de textos: bases menores recebem proporcionalmente mais sorteios.
 
 As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida. Para textos que não podem ser avaliados, use o botão de sortear outro; isso não grava um voto negativo.
 
-O trecho é obrigatório e deve ser copiado do registro apresentado. Podem ser usadas várias passagens, uma por linha, para justificar as categorias. O sistema verifica a presença dos trechos, mas a adequação das categorias depende da análise humana. A escolha e o texto permanecem na tela enquanto o formulário é preenchido. Ao salvar, é sorteado o próximo registro.
+O trecho é obrigatório quando houver alguma estratégia marcada e opcional ao escolher `Nenhuma das categorias`. Quando preenchido, deve ser copiado do registro apresentado. Podem ser usadas várias passagens, uma por linha, para justificar as categorias. O sistema verifica a presença dos trechos, mas a adequação das categorias depende da análise humana. A escolha e o texto permanecem na tela enquanto o formulário é preenchido. Ao salvar, é sorteado o próximo registro.
 
 As respostas de outras pessoas e os rótulos originais de fraude não aparecem na tela. O sorteio livre não garante que dois participantes recebam os mesmos textos; para calcular concordância, use apenas registros efetivamente anotados por ambos, ou defina uma amostra compartilhada em uma próxima etapa.
 

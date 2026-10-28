@@ -2,5 +2,19 @@
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#176B61"
+baseFontSize = 15
+
+[theme.light]
+primaryColor = "#0F766E"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#E8EEF4"
+textColor = "#162334"
+borderColor = "#CBD5E1"
+
+[theme.dark]
+primaryColor = "#5EEAD4"
+backgroundColor = "#0D1523"
+secondaryBackgroundColor = "#192638"
+textColor = "#F1F5F9"
+borderColor = "#46566C"
 
