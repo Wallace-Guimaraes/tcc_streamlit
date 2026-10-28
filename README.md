@@ -53,13 +53,17 @@ Para exportar no computador ou servidor responsável pela coleta:
 .\.venv\Scripts\python.exe banco.py
 ```
 
-O CSV será salvo em `armazenamento/anotacoes.csv`. As categorias são uma lista JSON; uma lista vazia indica a escolha explícita de nenhuma categoria. Banco, exportações, bases e segredos são ignorados pelo Git. O texto completo não é duplicado na tabela de respostas; ele pode ser recuperado pelo ID e conferido pelo hash na versão congelada da fonte.
+O CSV será salvo em `armazenamento/anotacoes.csv`. Ele reúne as respostas das três bases, incluindo texto original, estratégias separadas por ponto e vírgula, trecho e dados do anotador. `Nenhuma observável` indica a escolha explícita de nenhuma categoria. O texto completo é recuperado das fontes e conferido pelo hash na exportação. Banco, exportações, bases e segredos ficam fora do Git.
+
+Cada linha corresponde a uma anotação individual. O mesmo relato pode aparecer várias vezes, com respostas de pessoas diferentes. Uma nova resposta não substitui as anteriores, e o sistema não transforma as avaliações em consenso automaticamente. A restrição de duplicidade evita apenas repetir o envio do mesmo relato na mesma sessão.
 
 ## Git e hospedagem
 
 O repositório contém o código da tela e da gravação. Publique os arquivos do projeto, mantendo os dados coletados fora do Git.
 
-Esta versão usa SQLite em disco. Para coletar respostas em uma hospedagem, utilize armazenamento persistente e mantenha uma cópia do banco. No Streamlit Community Cloud, arquivos locais não têm persistência garantida; subir somente este código nessa plataforma não garante a conservação das anotações. O caminho do banco pode ser definido pela variável `BANCO_ANOTACOES`, apontando para um disco persistente. `PASTA_BASES` permite definir onde ficam as fontes.
+Esta versão usa apenas SQLite local, sem serviço de banco externo. Todos os participantes precisam acessar a mesma instância da aplicação para reunir as respostas no mesmo banco. Instâncias em computadores separados produzem bancos separados.
+
+Aceitar múltiplas respostas e conservar os dados entre reinícios são questões distintas. Em uma hospedagem temporária, exporte os dados antes de o armazenamento ser descartado. O Streamlit Community Cloud não garante a conservação dos arquivos locais. `BANCO_ANOTACOES` permite alterar o caminho do banco e `PASTA_BASES` define onde ficam as fontes.
 
 Referências: [contexto e IP no Streamlit](https://docs.streamlit.io/develop/api-reference/caching-and-state/st.context) e [persistência de arquivos locais](https://docs.streamlit.io/develop/concepts/connections/connecting-to-data).
 
@@ -69,6 +73,6 @@ Referências: [contexto e IP no Streamlit](https://docs.streamlit.io/develop/api
 .\.venv\Scripts\python.exe -m unittest testes_app -v
 ```
 
-## Experimentos do TCC
+## Uso na pesquisa
 
-Os arquivos de integração, anotações e modelagem que já estavam nesta pasta foram mantidos. As instruções anteriores estão em `README_TCC.md`. O comando `python tcc.py testar` continua verificando os experimentos; os testes da tela ficam em `testes_app.py`. A aplicação ainda não converte automaticamente as respostas coletadas em uma amostra final de treinamento: os votos precisam passar pela revisão e, quando houver pares, pela análise de concordância antes do consenso.
+Esta pasta contém a aplicação de coleta. A exportação preserva os votos individuais. Para preparar uma amostra final de treinamento, as respostas ainda precisam passar pela revisão e, quando houver pares, pela análise de concordância antes do consenso.

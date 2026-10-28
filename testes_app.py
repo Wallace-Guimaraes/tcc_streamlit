@@ -1,5 +1,7 @@
 """Testes da aplicação de anotação, separados dos testes dos experimentos."""
 import hashlib
+import csv
+import importlib.util
 import json
 import sqlite3
 import tempfile
@@ -51,7 +53,19 @@ class TestesAnotacao(unittest.TestCase):
         self.assertEqual(linhas[0][:3], (nome, 25, "127.0.0.1"))
         self.assertTrue(linhas[0][3].endswith("+00:00"))
         self.assertEqual(linhas[0][4], "Confirme hoje.")
-        self.assertTrue(exportar(self.banco).exists())
+        self.assertTrue(exportar(self.banco, bases={"WHATSAPP": [self.registro]}).exists())
+
+    def test_mesmo_relato_recebe_varias_respostas_e_exporta_todas(self):
+        self.salvar(nome="Wallace")
+        salvar_anotacao("resposta-2", "sessao-2", "Vinicius", 25, None, self.registro,
+                       ["Promessa de vantagem"], "Você receberá um prêmio.", caminho=self.banco)
+        saida = exportar(self.banco, bases={"WHATSAPP": [self.registro]})
+        with saida.open(encoding="utf-8-sig", newline="") as arquivo:
+            linhas = list(csv.DictReader(arquivo))
+        self.assertEqual(len(linhas), 2)
+        self.assertEqual({r["nome"] for r in linhas}, {"Wallace", "Vinicius"})
+        self.assertTrue(all(r["texto_original"] == self.registro["texto"] for r in linhas))
+        self.assertEqual({r["estrategias_identificadas"] for r in linhas}, {"Urgência", "Promessa de vantagem"})
 
     def test_varias_passagens_e_categorias(self):
         validar_anotacao(self.registro["texto"], ["Urgência", "Promessa de vantagem"],
@@ -63,6 +77,7 @@ class TestesAnotacao(unittest.TestCase):
         self.assertEqual(sortear_registro(bases, {self.registro["id_registro"]}), outra)
         self.assertIsNone(sortear_registro(bases, {self.registro["id_registro"], outra["id_registro"]}))
 
+    @unittest.skipUnless(importlib.util.find_spec("streamlit"), "Instale Streamlit para testar a tela.")
     def test_formulario_preserva_texto_e_grava(self):
         from streamlit.testing.v1 import AppTest
 

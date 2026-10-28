@@ -43,7 +43,9 @@ def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categor
         return cursor.rowcount == 1
 
 
-def exportar(caminho=None, saida=None):
+def exportar(caminho=None, saida=None, bases=None):
+    from dados import carregar_bases
+
     caminho = Path(caminho) if caminho is not None else BANCO
     if not caminho.exists():
         raise ValueError("Ainda não há um banco de anotações para exportar.")
@@ -53,10 +55,22 @@ def exportar(caminho=None, saida=None):
         cursor = conexao.execute("SELECT * FROM anotacoes ORDER BY data_hora_utc, id")
         cabecalho = [coluna[0] for coluna in cursor.description]
         registros = cursor.fetchall()
+    fontes = bases if bases is not None else carregar_bases()
+    textos = {r["id_registro"]: r for registros_base in fontes.values() for r in registros_base}
+    linhas = []
+    for valores in registros:
+        linha = dict(zip(cabecalho, valores))
+        registro = textos.get(linha["id_registro"])
+        if registro is None or registro["sha256_texto"] != linha["sha256_texto"]:
+            raise ValueError(f"Não foi possível conferir o texto de {linha['id_registro']} nas bases de origem.")
+        linha["texto_original"] = registro["texto"]
+        categorias = json.loads(linha["estrategias_identificadas"])
+        linha["estrategias_identificadas"] = "; ".join(categorias) if categorias else "Nenhuma observável"
+        linhas.append(linha)
     with saida.open("w", encoding="utf-8-sig", newline="") as arquivo:
-        gravador = csv.writer(arquivo)
-        gravador.writerow(cabecalho)
-        gravador.writerows(registros)
+        gravador = csv.DictWriter(arquivo, fieldnames=[*cabecalho, "texto_original"])
+        gravador.writeheader()
+        gravador.writerows(linhas)
     return saida
 
 
