@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from categorias import validar_anotacao
+from consentimento import validar_email
 
 BANCO = Path(os.environ.get("BANCO_ANOTACOES", str(Path(__file__).resolve().parent / "armazenamento/anotacoes.sqlite3")))
 
@@ -18,7 +19,7 @@ def conectar(caminho=None):
     conexao = sqlite3.connect(caminho, timeout=30)
     conexao.execute("""CREATE TABLE IF NOT EXISTS anotacoes (
         id TEXT PRIMARY KEY, sessao_id TEXT NOT NULL,
-        nome TEXT NOT NULL, idade INTEGER NOT NULL, ip TEXT,
+        nome TEXT NOT NULL, email TEXT NOT NULL, ip TEXT,
         data_hora_utc TEXT NOT NULL, id_registro TEXT NOT NULL,
         base_origem TEXT NOT NULL, sha256_texto TEXT NOT NULL,
         estrategias_identificadas TEXT NOT NULL, evidencia_textual TEXT NOT NULL,
@@ -27,12 +28,11 @@ def conectar(caminho=None):
     return conexao
 
 
-def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma=False, caminho=None, consentimento=None):
+def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categorias, trecho, nenhuma=False, caminho=None, consentimento=None):
     nome = nome.strip()
     if not nome or len(nome) > 150:
         raise ValueError("Informe seu nome, com até 150 caracteres.")
-    if not isinstance(idade, int) or isinstance(idade, bool) or not 1 <= idade <= 120:
-        raise ValueError("Informe uma idade entre 1 e 120 anos.")
+    email = validar_email(email)
     validar_anotacao(registro["texto"], categorias, trecho, nenhuma)
     endereco_api = os.environ.get("URL_API", "").strip()
     if caminho is None:
@@ -41,8 +41,8 @@ def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categor
         from cliente_api import enviar_anotacao
 
         return enviar_anotacao(endereco_api, os.environ.get("CHAVE_API", ""), identificador,
-                               sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma, consentimento)
-    valores = (identificador, sessao_id, nome, idade, ip,
+                               sessao_id, nome, email, ip, registro, categorias, trecho, nenhuma, consentimento)
+    valores = (identificador, sessao_id, nome, email, ip,
                datetime.now(timezone.utc).isoformat(timespec="seconds"), registro["id_registro"],
                registro["base_origem"], registro["sha256_texto"],
                json.dumps(list(dict.fromkeys(categorias)), ensure_ascii=False), trecho.strip())

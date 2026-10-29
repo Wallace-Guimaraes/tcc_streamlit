@@ -27,7 +27,7 @@ Abra o endereço mostrado no terminal, normalmente `http://localhost:8501`.
 
 O formulário usa duas colunas no computador: texto à esquerda e resposta à direita. Textos longos têm rolagem dentro do próprio campo. As explicações das categorias ficam nos ícones de ajuda. Para alternar entre claro e escuro, abra o menu `⋮` no canto superior direito e escolha o tema. A interface também acompanha a preferência de tema do sistema.
 
-Antes do formulário, a aplicação apresenta o Termo de Consentimento Livre e Esclarecido, com cópia para download. A pessoa precisa informar nome, idade mínima de 18 anos e marcar o aceite para iniciar. O texto e sua versão estão em `consentimento.py`. Os responsáveis são Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez, pelo e-mail `wallace.guimaraes@discente.ufra.edu.br`. Não é coletado e-mail do participante.
+Antes do formulário, a aplicação apresenta o Termo de Consentimento Livre e Esclarecido, com cópia para download. A pessoa precisa informar nome completo e e-mail e marcar a declaração de maioridade e aceite. Não é solicitada idade. O texto e sua versão estão em `consentimento.py`. Os responsáveis são Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez, pelo contato `wallace.guimaraes@discente.ufra.edu.br`.
 
 O texto adota a guarda por 12 meses após o término da pesquisa, conforme definição de Wallace. Esse prazo precisa de revisão pela orientação e pela instituição: a [Resolução CNS 510/2016](https://bvsms.saude.gov.br/bvs/saudelegis/cns/2016/res0510_07_04_2016.html) prevê guarda mínima de cinco anos quando aplicável. O código não certifica aprovação ética nem executa descarte automático. Cabe aos pesquisadores alinhar o termo ao protocolo e realizar a guarda, os backups e o descarte previstos.
 
@@ -35,7 +35,15 @@ Publique as alterações da API e da tela juntas. Na inicialização, a API adic
 
 ## Como funciona
 
-Após o consentimento, a aplicação escolhe uma das três bases com a mesma chance e sorteia um registro ainda não apresentado naquela sessão. São usados todos os registros das versões das bases do TCC, inclusive os que a fonte não marcou como fraude. A amostragem não é uniforme sobre o total de textos: bases menores recebem proporcionalmente mais sorteios.
+Após o consentimento, o Streamlit solicita um registro à API. O sorteio considera as três bases juntas e dá prioridade ao menor número de respostas mais reservas ativas. Entre registros com a mesma ocupação, vêm primeiro os que têm menos respostas efetivamente salvas; empates são resolvidos aleatoriamente. Assim, os registros sem avaliações e sem reservas são oferecidos antes daqueles que já receberam uma vaga. Não há mais uma escolha de base com probabilidade igual.
+
+Cada registro tem até dez respostas pela API. A distribuição e a gravação usam a mesma trava de transação PostgreSQL (`pg_advisory_xact_lock`), com isolamento READ COMMITTED: o limite é conferido dentro da transação que insere a resposta, e não somente no sorteio. Registros que já tinham dez ou mais respostas antes da atualização deixam de receber novas avaliações. As respostas antigas não são apagadas.
+
+A API mantém uma reserva de 30 minutos por sessão. Reabrir o formulário conserva a reserva válida. Ao salvar ou pular, a sessão libera sua vaga. Quando a reserva expira, deixa de contar na ocupação e outra pessoa pode usar a vaga. Uma resposta atrasada ainda pode ser aceita se sua reserva não foi trocada e houver capacidade livre; caso contrário, o sistema informa o conflito e conserva o formulário. O backend impede a mesma sessão de responder novamente ao mesmo registro.
+
+Todos os 7.412 registros são cadastrados na fila, inclusive os que ainda têm zero respostas. São usados todos os textos das fontes, inclusive os que não foram rotulados como fraude. O limite representa respostas por ID, não dez pessoas autenticadas nem dez famílias de textos distintas. Sessões diferentes podem pertencer à mesma pessoa, pois não há autenticação individual.
+
+Cobertura depende de participação suficiente: uma avaliação por registro exige pelo menos 7.412 respostas salvas; a meta de dez por registro exige 74.120 no total. Pular ou abandonar textos não cria respostas artificiais. A coleta termina quando todos os registros têm pelo menos dez avaliações; falta de textos para uma sessão não é apresentada como conclusão global.
 
 As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida. Para textos que não podem ser avaliados, use o botão de sortear outro; isso não grava um voto negativo.
 
@@ -48,7 +56,8 @@ As respostas de outras pessoas e os rótulos originais de fraude não aparecem n
 ```text
 app.py             tela da aplicação
 categorias.py      categorias e validação da resposta
-dados.py           leitura das fontes e sorteio
+dados.py           leitura e conferência das fontes
+distribuicao.py    fila, reservas e limite de respostas no PostgreSQL
 banco.py           envio para a API e acesso ao SQLite antigo
 cliente_api.py     cliente HTTP usado pelo servidor Streamlit
 api.py             validação e gravação no PostgreSQL
@@ -66,7 +75,19 @@ Neste repositório, as três bases foram copiadas para `bases/`: 557 registros d
 
 ## Respostas coletadas
 
-Cada anotação registra nome, idade, IP da conexão quando disponível, data/hora em UTC, identificação da sessão, ID e base do texto, hash do texto, categorias e trecho. Nome e IP são dados que podem identificar participantes. Não são coletados e-mail, senha, localização ou informações do sistema operacional. O IP vem do contexto do Streamlit, sem consultar serviços externos. Em acesso por localhost, ele pode estar ausente; atrás de intermediários, pode representar a conexão disponível ao servidor, não o IP privado do computador.
+Cada nova anotação registra nome completo, e-mail, IP da conexão quando disponível, data/hora em UTC, identificação da sessão, ID e base do texto, hash do texto, categorias e trecho. Nome, e-mail e IP podem identificar participantes. Não são coletados idade, senha, localização ou informações do sistema operacional. O IP vem do contexto do Streamlit, sem consultar serviços externos. Em acesso por localhost, ele pode estar ausente; atrás de intermediários, pode representar a conexão disponível ao servidor, não o IP privado do computador.
+
+Na atualização para nome e e-mail, a API acrescenta a coluna `email` e deixa de exigir a coluna antiga `idade`. As idades das respostas anteriores são preservadas como histórico, e novas respostas não preenchem esse campo. O TCLE passa à versão `2026-10-29.2`, exigindo um novo aceite. O e-mail recebe validação de formato, sem enviar mensagens nem confirmar a titularidade do endereço.
+
+## Job de disponibilidade
+
+O workflow `.github/workflows/manter-api.yml` consulta `/saude` a cada cinco minutos, em um runner do GitHub Actions. Também permite execução manual. Ele não usa a chave da API nem consulta respostas dos participantes; verifica apenas se a API e a conexão do banco respondem.
+
+Para ativar, publique o workflow na branch padrão (`main`) e confira a aba **Actions → Verificar disponibilidade da API**. Use **Run workflow** para a primeira execução manual. O agendamento não funciona apenas com o arquivo no computador. Se mudar o domínio, defina a variável de repositório `API_HEALTH_URL` com a URL completa de `/saude`.
+
+Chamadas regulares podem reduzir a suspensão por inatividade do Render, mas não garantem disponibilidade contínua. O GitHub pode atrasar ou descartar execuções agendadas e desativar o cron de um repositório público após 60 dias sem atividade. O job também não impede manutenção, limites de plano ou expiração do PostgreSQL gratuito. Serviços sem suspensão por inatividade são a opção para disponibilidade contínua.
+
+Referências: [agendamentos no GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule) e [limites gratuitos do Render](https://render.com/docs/free).
 
 No PostgreSQL, as novas respostas também registram `consentimento`, `consentimento_versao`, `consentimento_hash` e `consentimento_em`. O aceite é associado à sessão e enviado junto de cada anotação. Preencher a tela inicial sem enviar anotações não cria, por si só, uma linha no banco.
 
@@ -112,6 +133,24 @@ Para testar as rotas da API e o tratamento de falhas de conexão:
 ```
 
 Os testes HTTP substituem a conexão PostgreSQL por um objeto de teste. Eles não substituem a conferência com um PostgreSQL real após subir os serviços, descrita em `NUVEM.md`.
+
+Os testes específicos da distribuição ficam em `testes_distribuicao.py`. Para executar a integração real de concorrência, use um PostgreSQL separado e configure `TEST_DATABASE_URL` antes de rodar `python -m unittest testes_postgres -v`. Esse teste cria e remove somente um schema temporário `teste_coleta_*`, sem usar `public.anotacoes`. Ele verifica cobertura inicial, preenchimento por participantes simultâneos, limite de dez, reenvio e reaproveitamento de vagas expiradas. Não use a conexão de produção para os testes.
+
+### Conferir o andamento no DBeaver
+
+Depois de atualizar o backend, a consulta abaixo inclui também registros sem respostas:
+
+```sql
+SELECT r.id_registro, r.base_origem,
+       COUNT(a.id) AS respostas,
+       GREATEST(10 - COUNT(a.id), 0) AS faltam
+FROM registros_coleta r
+LEFT JOIN anotacoes a USING (id_registro)
+GROUP BY r.id_registro, r.base_origem
+ORDER BY respostas, r.id_registro;
+```
+
+As reservas ficam em `reservas_coleta` e não são votos. Elas contêm somente identificadores técnicos e prazo. [Referência das travas de transação PostgreSQL](https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS).
 
 ## Uso na pesquisa
 

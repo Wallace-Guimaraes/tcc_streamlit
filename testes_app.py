@@ -12,7 +12,6 @@ from unittest.mock import patch
 
 from banco import exportar, salvar_anotacao
 from categorias import validar_anotacao
-from dados import sortear_registro
 from consentimento import HASH_TCLE, TCLE, VERSAO_TCLE, registrar_aceite
 
 
@@ -26,7 +25,7 @@ class TestesAnotacao(unittest.TestCase):
                          "texto": texto, "sha256_texto": hashlib.sha256(texto.encode()).hexdigest()}
 
     def salvar(self, categorias=None, trecho="Confirme hoje.", nenhuma=False, nome="Pessoa de teste"):
-        return salvar_anotacao("resposta-1", "sessao-1", nome, 25, "127.0.0.1", self.registro,
+        return salvar_anotacao("resposta-1", "sessao-1", nome, "pessoa@example.org", "127.0.0.1", self.registro,
                                ["Urgência"] if categorias is None else categorias, trecho, nenhuma, self.banco)
 
     def test_trecho_obrigatorio_e_literal(self):
@@ -56,16 +55,16 @@ class TestesAnotacao(unittest.TestCase):
         self.assertTrue(self.salvar(nome=nome))
         self.assertFalse(self.salvar(nome=nome))
         with closing(sqlite3.connect(self.banco)) as conexao:
-            linhas = conexao.execute("SELECT nome, idade, ip, data_hora_utc, evidencia_textual FROM anotacoes").fetchall()
+            linhas = conexao.execute("SELECT nome, email, ip, data_hora_utc, evidencia_textual FROM anotacoes").fetchall()
         self.assertEqual(len(linhas), 1)
-        self.assertEqual(linhas[0][:3], (nome, 25, "127.0.0.1"))
+        self.assertEqual(linhas[0][:3], (nome, "pessoa@example.org", "127.0.0.1"))
         self.assertTrue(linhas[0][3].endswith("+00:00"))
         self.assertEqual(linhas[0][4], "Confirme hoje.")
         self.assertTrue(exportar(self.banco, bases={"WHATSAPP": [self.registro]}).exists())
 
     def test_mesmo_relato_recebe_varias_respostas_e_exporta_todas(self):
         self.salvar(nome="Wallace")
-        salvar_anotacao("resposta-2", "sessao-2", "Vinicius", 25, None, self.registro,
+        salvar_anotacao("resposta-2", "sessao-2", "Vinicius", "vinicius@example.org", None, self.registro,
                        ["Promessa de vantagem"], "Você receberá um prêmio.", caminho=self.banco)
         saida = exportar(self.banco, bases={"WHATSAPP": [self.registro]})
         with saida.open(encoding="utf-8-sig", newline="") as arquivo:
@@ -79,12 +78,6 @@ class TestesAnotacao(unittest.TestCase):
         validar_anotacao(self.registro["texto"], ["Urgência", "Promessa de vantagem"],
                          "Confirme hoje.\nVocê receberá um prêmio.")
 
-    def test_sorteio_respeita_vistos_e_esgotamento(self):
-        outra = dict(self.registro, id_registro="GBR-000001", base_origem="GOLPEBR")
-        bases = {"WHATSAPP": [self.registro], "GOLPEBR": [outra]}
-        self.assertEqual(sortear_registro(bases, {self.registro["id_registro"]}), outra)
-        self.assertIsNone(sortear_registro(bases, {self.registro["id_registro"], outra["id_registro"]}))
-
     @unittest.skipUnless(importlib.util.find_spec("streamlit"), "Instale Streamlit para testar a tela.")
     def test_formulario_preserva_texto_e_grava(self):
         from streamlit.testing.v1 import AppTest
@@ -93,11 +86,13 @@ class TestesAnotacao(unittest.TestCase):
         import banco
         with patch.object(banco, "BANCO", self.banco), \
              patch("banco.salvar_anotacao", side_effect=lambda *args, **kwargs: salvar_anotacao(*args, **kwargs, caminho=self.banco)), \
-             patch("dados.carregar_bases", return_value={"WHATSAPP": [self.registro]}):
+             patch("cliente_api.sortear_pela_api", side_effect=[
+                 {"registro": dict(self.registro, reserva_id="00000000-0000-4000-8000-000000000001"), "concluido": False},
+                 {"registro": None, "concluido": False}]):
             tela = AppTest.from_file(str(Path(__file__).with_name("app.py")), default_timeout=20).run()
             self.assertFalse(tela.exception)
             tela.text_input[0].input("Pessoa de teste")
-            tela.number_input[0].set_value(25)
+            tela.text_input[1].input("pessoa@example.org")
             tela.button[0].click().run()
             self.assertFalse(tela.exception)
             self.assertTrue(tela.error)
@@ -121,15 +116,16 @@ class TestesAnotacao(unittest.TestCase):
 
 
 class TestesConsentimento(unittest.TestCase):
-    def test_recusa_menor_e_sem_aceite(self):
-        for nome, idade, aceite in (("Pessoa", 17, True), ("Pessoa", 18, False), ("", 18, True), ("Pessoa", None, True)):
+    def test_exige_nome_email_e_declaracao_de_aceite(self):
+        for nome, email, aceite in (("Pessoa", "invalido", True), ("Pessoa", "pessoa@example.org", False),
+                                    ("", "pessoa@example.org", True), ("Pessoa", None, True)):
             with self.assertRaises(ValueError):
-                registrar_aceite(nome, idade, aceite)
+                registrar_aceite(nome, email, aceite)
 
     def test_aceite_identifica_termo_e_data(self):
         from datetime import datetime
 
-        aceite = registrar_aceite("Pessoa", 18, True)
+        aceite = registrar_aceite("Pessoa", "pessoa@example.org", True)
         self.assertEqual(aceite["consentimento_versao"], VERSAO_TCLE)
         self.assertEqual(aceite["consentimento_hash"], hashlib.sha256(TCLE.encode("utf-8")).hexdigest())
         self.assertIsNotNone(datetime.fromisoformat(aceite["consentimento_em"]).tzinfo)

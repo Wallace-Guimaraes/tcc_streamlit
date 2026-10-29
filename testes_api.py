@@ -24,14 +24,15 @@ class TestesAPI(unittest.TestCase):
         self.conexao.execute.return_value.fetchone.return_value = ("salva",)
         for contexto in (patch.dict(os.environ, {"CHAVE_API": "chave-de-teste"}),
                          patch.object(api, "conectar", return_value=self.conexao),
+                         patch.object(api, "conferir_vaga", return_value=True),
                          patch.object(api, "registros_por_id", return_value={"FWA-000001": self.registro})):
             contexto.start()
             self.addCleanup(contexto.stop)
         self.cliente = TestClient(api.app)
-        self.dados = {"id": str(uuid4()), "sessao_id": str(uuid4()), "nome": "Pessoa de teste", "idade": 25,
+        self.dados = {"id": str(uuid4()), "sessao_id": str(uuid4()), "nome": "Pessoa de teste", "email": "pessoa@example.org",
                       "ip": None, "id_registro": "FWA-000001", "sha256_texto": self.registro["sha256_texto"],
                       "categorias": ["Urgência"], "trecho": texto, "nenhuma": False}
-        self.dados.update(registrar_aceite("Pessoa de teste", 25, True))
+        self.dados.update(registrar_aceite("Pessoa de teste", "pessoa@example.org", True))
 
     def enviar(self, dados=None):
         return self.cliente.post("/anotacoes", json=self.dados if dados is None else dados,
@@ -45,8 +46,10 @@ class TestesAPI(unittest.TestCase):
     def test_grava_apenas_apos_validar_texto_e_categoria(self):
         resposta = self.enviar()
         self.assertEqual(resposta.json(), {"criada": True})
-        parametros = self.conexao.execute.call_args.args[1]
+        parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
+                          if "INSERT INTO anotacoes" in chamada.args[0])
         self.assertEqual(parametros[6], "FRAUDWHATSAPP_BR")
+        self.assertEqual(parametros[3], "pessoa@example.org")
         self.assertEqual(json.loads(parametros[8]), ["Urgência"])
         self.assertTrue(parametros[-1])
         self.assertEqual(self.enviar(dict(self.dados, trecho="Passagem inventada")).status_code, 422)
@@ -60,8 +63,10 @@ class TestesAPI(unittest.TestCase):
         self.conexao.execute.return_value.fetchone.return_value = None
         self.assertEqual(self.enviar().json(), {"criada": False})
 
-    def test_exige_adulto_e_aceite_atual(self):
-        for dados in (dict(self.dados, idade=17), dict(self.dados, consentimento=False),
+    def test_exige_email_e_aceite_atual(self):
+        for dados in (dict(self.dados, email="invalido"), dict(self.dados, consentimento=False),
+                      {k: v for k, v in self.dados.items() if k != "email"},
+                      dict(self.dados, idade=25),
                       {k: v for k, v in self.dados.items() if not k.startswith("consentimento")},
                       dict(self.dados, consentimento_hash="0" * 64),
                       dict(self.dados, consentimento_versao="versao-antiga")):
@@ -75,6 +80,23 @@ class TestesAPI(unittest.TestCase):
     def test_saude_confere_banco(self):
         self.assertEqual(self.cliente.get("/saude").json(), {"status": "ok"})
 
+    def test_sorteio_entrega_reserva_sem_expor_respostas(self):
+        reserva = {"id_registro": "FWA-000001", "reserva_id": str(uuid4()), "concluido": False}
+        with patch.object(self.api, "reservar_registro", return_value=reserva):
+            resposta = self.cliente.post("/sorteio", json={"sessao_id": self.dados["sessao_id"]},
+                                         headers={"X-API-Key": "chave-de-teste"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.json()["registro"]["reserva_id"], reserva["reserva_id"])
+        self.assertNotIn("categorias", resposta.json()["registro"])
+        self.assertNotIn("nome", resposta.json()["registro"])
+
+    def test_recusa_resposta_sem_vaga(self):
+        from distribuicao import RegistroIndisponivel
+
+        with patch.object(self.api, "conferir_vaga", side_effect=RegistroIndisponivel("Sem vaga")):
+            self.assertEqual(self.enviar().status_code, 409)
+        self.conexao.execute.assert_not_called()
+
 
 class TestesCliente(unittest.TestCase):
     def test_sem_url_nao_grava_em_sqlite_alternativo(self):
@@ -82,7 +104,7 @@ class TestesCliente(unittest.TestCase):
         registro = {"texto": "Confirme hoje.", "id_registro": "FWA-000001", "sha256_texto": "0" * 64}
         with patch.dict(os.environ, {"URL_API": ""}), patch("banco.conectar") as conectar:
             with self.assertRaisesRegex(ValueError, "URL_API"):
-                salvar_anotacao(str(uuid4()), str(uuid4()), "Pessoa", 25, None, registro, ["Urgência"], "Confirme hoje.")
+                salvar_anotacao(str(uuid4()), str(uuid4()), "Pessoa", "pessoa@example.org", None, registro, ["Urgência"], "Confirme hoje.")
             conectar.assert_not_called()
 
     def test_erro_de_rede_nao_grava_em_sqlite_alternativo(self):
@@ -91,7 +113,7 @@ class TestesCliente(unittest.TestCase):
         with patch.dict(os.environ, {"URL_API": "https://api.example", "CHAVE_API": "teste"}), \
              patch("cliente_api.urllib.request.urlopen", side_effect=OSError("sem rede")), patch("banco.conectar") as conectar:
             with self.assertRaises(ValueError):
-                salvar_anotacao(str(uuid4()), str(uuid4()), "Pessoa", 25, None, registro, ["Urgência"], "Confirme hoje.")
+                salvar_anotacao(str(uuid4()), str(uuid4()), "Pessoa", "pessoa@example.org", None, registro, ["Urgência"], "Confirme hoje.")
             conectar.assert_not_called()
 
 

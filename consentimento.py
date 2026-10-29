@@ -1,8 +1,9 @@
 """Texto e identificação da versão do termo apresentado antes da coleta."""
 import hashlib
+import re
 from datetime import datetime, timezone
 
-VERSAO_TCLE = "2026-10-29.1"
+VERSAO_TCLE = "2026-10-29.2"
 
 TCLE = """# Termo de Consentimento Livre e Esclarecido
 
@@ -14,15 +15,15 @@ O objetivo desta atividade é reunir avaliações humanas para estudar como estr
 
 ## Sua participação
 
-Esta atividade é destinada a pessoas com 18 anos ou mais. Você informará seu nome e sua idade, lerá textos sorteados das bases GolpeBR, FraudWhatsApp.Br e FraudTelegram.Br e marcará as estratégias que identificar. Um texto pode receber mais de uma categoria. Ao marcar uma estratégia, será necessário copiar um trecho que justifique sua escolha. Se não identificar nenhuma das oito categorias, poderá selecionar essa opção sem preencher justificativa.
+Esta atividade é destinada a pessoas com 18 anos ou mais. Você informará seu nome completo e seu e-mail, declarará ser maior de idade, lerá textos sorteados das bases GolpeBR, FraudWhatsApp.Br e FraudTelegram.Br e marcará as estratégias que identificar. Um texto pode receber mais de uma categoria. Ao marcar uma estratégia, será necessário copiar um trecho que justifique sua escolha. Se não identificar nenhuma das oito categorias, poderá selecionar essa opção sem preencher justificativa.
 
 Não há quantidade obrigatória de textos nem duração fixa. Você poderá pular um texto ou encerrar sua participação quando quiser. Os textos vêm de bases de pesquisa e podem conter relatos, notícias e mensagens reais; não são situações fictícias criadas para a atividade. A presença de um registro na base não comprova que ele seja uma fraude.
 
 ## Dados registrados
 
-Ao salvar uma anotação, serão registrados nome, idade, IP da conexão quando disponível, data e hora, identificadores da sessão e do texto, categorias escolhidas e justificativa. Também serão registrados a versão do termo, seu identificador de integridade e a data e hora do aceite.
+Ao salvar uma anotação, serão registrados nome completo, e-mail, IP da conexão quando disponível, data e hora, identificadores da sessão e do texto, categorias escolhidas e justificativa. Também serão registrados a versão do termo, seu identificador de integridade e a data e hora do aceite. A idade não é solicitada; a maioridade é declarada no consentimento.
 
-As respostas são enviadas pelo servidor Streamlit à API da pesquisa e armazenadas no PostgreSQL hospedado no Render. Esta aplicação não envia suas respostas à OpenAI nem utiliza um assistente de inteligência artificial para responder por você. Não é solicitado e-mail do participante.
+As respostas são enviadas pelo servidor Streamlit à API da pesquisa e armazenadas no PostgreSQL hospedado no Render. Esta aplicação não envia suas respostas à OpenAI nem utiliza um assistente de inteligência artificial para responder por você. Nome e e-mail servem para identificar as anotações e atender eventuais solicitações administrativas da pesquisa; não serão publicados.
 
 ## Riscos e desconfortos
 
@@ -38,7 +39,7 @@ Fechar a página interrompe a participação, mas não apaga respostas já envia
 
 ## Confidencialidade
 
-As respostas serão utilizadas nas análises do TCC. Nome, idade e IP não tornam a coleta anônima. Os resultados destinados à divulgação deverão ser apresentados sem expor os nomes, IPs ou outros identificadores diretos dos participantes. As respostas dos demais anotadores não são mostradas durante a atividade.
+As respostas serão utilizadas nas análises do TCC. Nome, e-mail e IP não tornam a coleta anônima. Os resultados destinados à divulgação deverão ser apresentados sem expor nomes, e-mails, IPs ou outros identificadores diretos dos participantes. As respostas dos demais anotadores não são mostradas durante a atividade.
 
 ## Guarda do material
 
@@ -64,17 +65,25 @@ Baixe uma cópia deste termo antes de iniciar e guarde-a para consultar os objet
 
 Ao marcar a declaração de aceite e clicar em “Concordo e quero participar”, você confirma ter 18 anos ou mais, ter lido as informações acima e concordar voluntariamente com a participação e o registro dos dados descritos. Caso não concorde, feche a página sem enviar o formulário.
 
-Versão do termo: 2026-10-29.1.
+Versão do termo: 2026-10-29.2.
 """
 
 HASH_TCLE = hashlib.sha256(TCLE.encode("utf-8")).hexdigest()
 
 
-def registrar_aceite(nome, idade, concordou):
+def validar_email(email):
+    if not isinstance(email, str):
+        raise ValueError("Informe um e-mail válido.")
+    email = email.strip()
+    if len(email) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        raise ValueError("Informe um e-mail válido.")
+    return email
+
+
+def registrar_aceite(nome, email, concordou):
     if not nome.strip() or len(nome.strip()) > 150:
         raise ValueError("Informe seu nome completo.")
-    if not isinstance(idade, int) or isinstance(idade, bool) or not 18 <= idade <= 120:
-        raise ValueError("A participação é destinada a pessoas com 18 anos ou mais.")
+    validar_email(email)
     if concordou is not True:
         raise ValueError("Para participar, leia o termo e marque a declaração de consentimento.")
     return {"consentimento": True, "consentimento_versao": VERSAO_TCLE,

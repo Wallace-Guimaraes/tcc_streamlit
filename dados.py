@@ -1,9 +1,8 @@
-"""Leitura das versões das bases utilizadas no TCC e sorteio de registros."""
+"""Leitura das versões das bases utilizadas no TCC e conferência dos textos."""
 import csv
 import hashlib
 import io
 import os
-import random
 import sys
 import urllib.request
 from pathlib import Path
@@ -45,12 +44,3 @@ def carregar_bases(pasta=PASTA_BASES):
                                   "texto": texto, "sha256_texto": hashlib.sha256(texto.encode("utf-8")).hexdigest()})
         bases[nome] = registros
     return bases
-
-
-def sortear_registro(bases, vistos):
-    disponiveis = {nome: [r for r in registros if r["id_registro"] not in vistos] for nome, registros in bases.items()}
-    disponiveis = {nome: registros for nome, registros in disponiveis.items() if registros}
-    if not disponiveis:
-        return None
-    return random.choice(disponiveis[random.choice(list(disponiveis))])
-

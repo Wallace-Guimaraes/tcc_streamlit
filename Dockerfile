@@ -12,5 +12,5 @@ CMD ["sh", "-c", "streamlit run app.py --server.address 0.0.0.0 --server.port ${
 FROM base AS api
 COPY requirements_api.txt ./
 RUN pip install --no-cache-dir -r requirements_api.txt
-COPY api.py categorias.py dados.py consentimento.py ./
+COPY api.py categorias.py dados.py consentimento.py distribuicao.py ./
 CMD ["sh", "-c", "exec uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}"]

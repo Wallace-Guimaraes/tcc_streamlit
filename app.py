@@ -8,7 +8,7 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 from banco import salvar_anotacao
 from categorias import CATEGORIAS
-from dados import carregar_bases, sortear_registro
+from cliente_api import sortear_pela_api
 from consentimento import HASH_TCLE, TCLE, VERSAO_TCLE, registrar_aceite
 
 st.set_page_config(page_title="Anotação de textos — TCC", layout="wide")
@@ -59,11 +59,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-@st.cache_data(show_spinner="Carregando as três bases…")
-def obter_bases():
-    return carregar_bases()
-
-
 aceite_atual = st.session_state.get("consentimento", {})
 if ("participante" not in st.session_state
         or aceite_atual.get("consentimento_versao") != VERSAO_TCLE
@@ -79,18 +74,18 @@ if ("participante" not in st.session_state
     with coluna_aceite:
         with st.form("identificacao"):
             nome = st.text_input("Nome completo", max_chars=150)
-            idade = st.number_input("Idade", min_value=18, max_value=120, value=None, step=1, placeholder="Sua idade")
+            email = st.text_input("E-mail", max_chars=254, placeholder="voce@exemplo.com")
             concordou = st.checkbox("Declaro que tenho 18 anos ou mais, li o termo e concordo em participar desta pesquisa.")
             iniciar = st.form_submit_button("Concordo e quero participar", type="primary", use_container_width=True)
         st.caption("Se não concordar, feche a página. Nenhuma anotação será enviada antes do aceite.")
     if iniciar:
         try:
-            aceite = registrar_aceite(nome, idade, concordou)
+            aceite = registrar_aceite(nome, email, concordou)
         except ValueError as erro:
             st.error(str(erro))
         else:
             st.session_state.consentimento = aceite
-            st.session_state.participante = {"nome": nome.strip(), "idade": int(idade)}
+            st.session_state.participante = {"nome": nome.strip(), "email": email.strip()}
             st.session_state.sessao_id = str(uuid4())
             st.session_state.vistos = set()
             st.session_state.salvas = 0
@@ -98,23 +93,32 @@ if ("participante" not in st.session_state
     st.stop()
 
 st.markdown("### Anotação de textos")
-try:
-    bases = obter_bases()
-except (OSError, ValueError) as erro:
-    st.error(f"Não foi possível carregar as bases: {erro}")
-    st.stop()
-
 participante = st.session_state.participante
 st.caption(f"{participante['nome']} · {st.session_state.salvas} respostas nesta sessão")
 if "mensagem" in st.session_state:
     st.toast(st.session_state.pop("mensagem"))
 
 if "registro" not in st.session_state:
-    st.session_state.registro = sortear_registro(bases, st.session_state.vistos)
-    st.session_state.anotacao_id = str(uuid4())
+    try:
+        distribuido = sortear_pela_api(st.session_state.sessao_id, st.session_state.vistos)
+    except ValueError as erro:
+        st.error(str(erro))
+        if st.button("Tentar novamente"):
+            st.rerun()
+        st.stop()
+    st.session_state.registro = distribuido["registro"]
+    st.session_state.coleta_concluida = distribuido["concluido"]
+    if distribuido["registro"] is not None:
+        st.session_state.anotacao_id = distribuido["registro"]["reserva_id"]
 registro = st.session_state.registro
 if registro is None:
-    st.info("Você já percorreu todos os textos disponíveis nesta sessão. Obrigado pela participação!")
+    if st.session_state.coleta_concluida:
+        st.success("A coleta foi concluída: todos os registros atingiram dez respostas. Obrigado!")
+    else:
+        st.info("Não há outros textos disponíveis para sua sessão agora. Algumas vagas podem estar em avaliação por outras pessoas.")
+        if st.button("Verificar novamente"):
+            del st.session_state.registro
+            st.rerun()
     st.stop()
 
 coluna_texto, coluna_resposta = st.columns([1.15, 1], gap="medium")
@@ -142,7 +146,7 @@ with coluna_resposta:
 if salvar:
     try:
         gravou = salvar_anotacao(st.session_state.anotacao_id, st.session_state.sessao_id,
-                                 participante["nome"], participante["idade"], st.context.ip_address,
+                                 participante["nome"], participante["email"], st.context.ip_address,
                                  registro, categorias, trecho, nenhuma, consentimento=st.session_state.consentimento)
     except (ValueError, sqlite3.Error, OSError) as erro:
         st.error(f"A resposta não foi salva: {erro}")

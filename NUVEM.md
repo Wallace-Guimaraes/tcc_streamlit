@@ -81,6 +81,12 @@ O Streamlit faz a chamada à API pelo servidor, não pelo navegador. Não é nec
 
 Ao publicar a versão com TCLE, inclua `consentimento.py` no Git e atualize a API e a tela. A inicialização da API adiciona as colunas de consentimento ao banco existente. Depois, reinicie o Streamlit e faça um novo aceite. As respostas antigas são mantidas sem receber aceite retroativo. A edição do termo exige atualizar os dois serviços para que versão e hash coincidam.
 
+A versão `2026-10-29.2` substitui a coleta de idade por e-mail. Publique API e tela juntas: a API cria `email`, mantém idades antigas e aceita novas respostas com nome completo e e-mail. A maioridade permanece como declaração no termo.
+
+O workflow `.github/workflows/manter-api.yml`, após publicado na branch padrão, faz uma verificação externa de saúde a cada cinco minutos. Acompanhe a execução na aba Actions do GitHub. Ele pode reduzir o tempo ocioso da API gratuita, mas não elimina limitações da hospedagem nem garante que o serviço nunca durma. Detalhes de ativação e limites estão no README.
+
+Na versão com distribuição centralizada, inclua também `distribuicao.py`. Ao iniciar, a API carrega e confere as fontes, cria o catálogo completo em `registros_coleta` e a tabela `reservas_coleta`, preservando as anotações existentes. A tela solicita cada texto por `POST /sorteio`; o identificador da reserva é usado como identificador da resposta em `POST /anotacoes`. Atualize a API e a tela juntas e reinicie as sessões antigas. Formulários sorteados apenas no navegador, antes desta atualização, não possuem reserva válida para a nova API.
+
 Se a API estiver indisponível, a resposta continua na tela e não é gravada em um SQLite alternativo. O mesmo identificador de anotação pode ser reenviado sem criar cópias.
 
 ## 5. Conferir uma anotação
