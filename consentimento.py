@@ -3,7 +3,7 @@ import hashlib
 import re
 from datetime import datetime, timezone
 
-VERSAO_TCLE = "2026-10-29.2"
+VERSAO_TCLE = "2026-10-29.3"
 
 TCLE = """# Termo de Consentimento Livre e Esclarecido
 
@@ -23,7 +23,7 @@ Não há quantidade obrigatória de textos nem duração fixa. Você poderá pul
 
 Ao salvar uma anotação, serão registrados nome completo, e-mail, IP da conexão quando disponível, data e hora, identificadores da sessão e do texto, categorias escolhidas e justificativa. Também serão registrados a versão do termo, seu identificador de integridade e a data e hora do aceite. A idade não é solicitada; a maioridade é declarada no consentimento.
 
-As respostas são enviadas pelo servidor Streamlit à API da pesquisa e armazenadas no PostgreSQL hospedado no Render. Esta aplicação não envia suas respostas à OpenAI nem utiliza um assistente de inteligência artificial para responder por você. Nome e e-mail servem para identificar as anotações e atender eventuais solicitações administrativas da pesquisa; não serão publicados.
+As respostas são enviadas pelo servidor Streamlit à API da pesquisa e armazenadas no PostgreSQL hospedado no Render. Nome e e-mail servem para identificar as anotações e atender eventuais solicitações administrativas da pesquisa; não serão publicados.
 
 ## Riscos e desconfortos
 
@@ -43,7 +43,7 @@ As respostas serão utilizadas nas análises do TCC. Nome, e-mail e IP não torn
 
 ## Guarda do material
 
-Os dados coletados ficarão sob a responsabilidade de Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez pelo período de 12 meses após o término da pesquisa. Ao final desse período, caberá aos pesquisadores realizar o descarte do material identificável, inclusive das cópias sob sua guarda.
+Os dados coletados ficarão sob a responsabilidade de Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez pelo período de 5 (cinco) anos após o término da pesquisa. Ao final desse período, caberá aos pesquisadores realizar o descarte do material identificável, inclusive das cópias sob sua guarda.
 
 ## Benefícios
 
@@ -65,7 +65,7 @@ Baixe uma cópia deste termo antes de iniciar e guarde-a para consultar os objet
 
 Ao marcar a declaração de aceite e clicar em “Concordo e quero participar”, você confirma ter 18 anos ou mais, ter lido as informações acima e concordar voluntariamente com a participação e o registro dos dados descritos. Caso não concorde, feche a página sem enviar o formulário.
 
-Versão do termo: 2026-10-29.2.
+Versão do termo: 2026-10-29.3.
 """
 
 HASH_TCLE = hashlib.sha256(TCLE.encode("utf-8")).hexdigest()

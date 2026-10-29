@@ -29,7 +29,7 @@ O formulário usa duas colunas no computador: texto à esquerda e resposta à di
 
 Antes do formulário, a aplicação apresenta o Termo de Consentimento Livre e Esclarecido, com cópia para download. A pessoa precisa informar nome completo e e-mail e marcar a declaração de maioridade e aceite. Não é solicitada idade. O texto e sua versão estão em `consentimento.py`. Os responsáveis são Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez, pelo contato `wallace.guimaraes@discente.ufra.edu.br`.
 
-O texto adota a guarda por 12 meses após o término da pesquisa, conforme definição de Wallace. Esse prazo precisa de revisão pela orientação e pela instituição: a [Resolução CNS 510/2016](https://bvsms.saude.gov.br/bvs/saudelegis/cns/2016/res0510_07_04_2016.html) prevê guarda mínima de cinco anos quando aplicável. O código não certifica aprovação ética nem executa descarte automático. Cabe aos pesquisadores alinhar o termo ao protocolo e realizar a guarda, os backups e o descarte previstos.
+O termo prevê a guarda dos dados por 5 (cinco) anos após o término da pesquisa, sob responsabilidade dos pesquisadores. O código não executa descarte automático. Cabe aos pesquisadores manter os backups e realizar o descarte ao final desse prazo, conforme o termo e o protocolo da pesquisa.
 
 Publique as alterações da API e da tela juntas. Na inicialização, a API adiciona as colunas de consentimento ao PostgreSQL sem apagar linhas existentes. Respostas antigas ficam com esses campos nulos; não recebem aceite retroativo. Novas respostas exigem aceite, versão, hash e data/hora do termo. Ao alterar o conteúdo do termo, atualize também sua versão e publique os dois serviços.
 
