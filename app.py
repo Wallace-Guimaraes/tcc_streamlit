@@ -9,6 +9,7 @@ from streamlit.errors import StreamlitSecretNotFoundError
 from banco import salvar_anotacao
 from categorias import CATEGORIAS
 from dados import carregar_bases, sortear_registro
+from consentimento import HASH_TCLE, TCLE, VERSAO_TCLE, registrar_aceite
 
 st.set_page_config(page_title="Anotação de textos — TCC", layout="wide")
 try:
@@ -56,7 +57,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-st.markdown("### Anotação de textos")
 
 
 @st.cache_data(show_spinner="Carregando as três bases…")
@@ -64,19 +64,32 @@ def obter_bases():
     return carregar_bases()
 
 
-if "participante" not in st.session_state:
-    st.caption("TCC · Wallace e Vinicius")
-    st.write("Leia o texto, marque as categorias e copie os trechos que justificam sua escolha.")
-    st.caption("Registro: nome, idade, IP quando disponível, data/hora e resposta.")
-    with st.form("identificacao"):
-        campo_nome, campo_idade = st.columns([3, 1])
-        nome = campo_nome.text_input("Nome", max_chars=150)
-        idade = campo_idade.number_input("Idade", min_value=1, max_value=120, value=None, step=1, placeholder="Idade")
-        iniciar = st.form_submit_button("Começar", type="primary")
+aceite_atual = st.session_state.get("consentimento", {})
+if ("participante" not in st.session_state
+        or aceite_atual.get("consentimento_versao") != VERSAO_TCLE
+        or aceite_atual.get("consentimento_hash") != HASH_TCLE):
+    st.markdown("### Termo de Consentimento Livre e Esclarecido")
+    st.caption("Pesquisa de TCC · Wallace e Vinicíus · Participação a partir de 18 anos")
+    coluna_termo, coluna_aceite = st.columns([1.7, 1], gap="large")
+    with coluna_termo:
+        with st.container(height=420, border=True):
+            st.markdown(TCLE.split("\n", 1)[1])
+        st.download_button("Baixar uma cópia do termo", data=TCLE.encode("utf-8"),
+                           file_name=f"termo_consentimento_{VERSAO_TCLE}.txt", mime="text/plain; charset=utf-8")
+    with coluna_aceite:
+        with st.form("identificacao"):
+            nome = st.text_input("Nome completo", max_chars=150)
+            idade = st.number_input("Idade", min_value=18, max_value=120, value=None, step=1, placeholder="Sua idade")
+            concordou = st.checkbox("Declaro que tenho 18 anos ou mais, li o termo e concordo em participar desta pesquisa.")
+            iniciar = st.form_submit_button("Concordo e quero participar", type="primary", use_container_width=True)
+        st.caption("Se não concordar, feche a página. Nenhuma anotação será enviada antes do aceite.")
     if iniciar:
-        if not nome.strip() or idade is None:
-            st.error("Preencha seu nome e sua idade para começar.")
+        try:
+            aceite = registrar_aceite(nome, idade, concordou)
+        except ValueError as erro:
+            st.error(str(erro))
         else:
+            st.session_state.consentimento = aceite
             st.session_state.participante = {"nome": nome.strip(), "idade": int(idade)}
             st.session_state.sessao_id = str(uuid4())
             st.session_state.vistos = set()
@@ -84,6 +97,7 @@ if "participante" not in st.session_state:
             st.rerun()
     st.stop()
 
+st.markdown("### Anotação de textos")
 try:
     bases = obter_bases()
 except (OSError, ValueError) as erro:
@@ -129,7 +143,7 @@ if salvar:
     try:
         gravou = salvar_anotacao(st.session_state.anotacao_id, st.session_state.sessao_id,
                                  participante["nome"], participante["idade"], st.context.ip_address,
-                                 registro, categorias, trecho, nenhuma)
+                                 registro, categorias, trecho, nenhuma, consentimento=st.session_state.consentimento)
     except (ValueError, sqlite3.Error, OSError) as erro:
         st.error(f"A resposta não foi salva: {erro}")
     else:

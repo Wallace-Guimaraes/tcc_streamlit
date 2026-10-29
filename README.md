@@ -27,9 +27,15 @@ Abra o endereço mostrado no terminal, normalmente `http://localhost:8501`.
 
 O formulário usa duas colunas no computador: texto à esquerda e resposta à direita. Textos longos têm rolagem dentro do próprio campo. As explicações das categorias ficam nos ícones de ajuda. Para alternar entre claro e escuro, abra o menu `⋮` no canto superior direito e escolha o tema. A interface também acompanha a preferência de tema do sistema.
 
+Antes do formulário, a aplicação apresenta o Termo de Consentimento Livre e Esclarecido, com cópia para download. A pessoa precisa informar nome, idade mínima de 18 anos e marcar o aceite para iniciar. O texto e sua versão estão em `consentimento.py`. Os responsáveis são Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez, pelo e-mail `wallace.guimaraes@discente.ufra.edu.br`. Não é coletado e-mail do participante.
+
+O texto adota a guarda por 12 meses após o término da pesquisa, conforme definição de Wallace. Esse prazo precisa de revisão pela orientação e pela instituição: a [Resolução CNS 510/2016](https://bvsms.saude.gov.br/bvs/saudelegis/cns/2016/res0510_07_04_2016.html) prevê guarda mínima de cinco anos quando aplicável. O código não certifica aprovação ética nem executa descarte automático. Cabe aos pesquisadores alinhar o termo ao protocolo e realizar a guarda, os backups e o descarte previstos.
+
+Publique as alterações da API e da tela juntas. Na inicialização, a API adiciona as colunas de consentimento ao PostgreSQL sem apagar linhas existentes. Respostas antigas ficam com esses campos nulos; não recebem aceite retroativo. Novas respostas exigem aceite, versão, hash e data/hora do termo. Ao alterar o conteúdo do termo, atualize também sua versão e publique os dois serviços.
+
 ## Como funciona
 
-O participante informa nome e idade. A aplicação escolhe uma das três bases com a mesma chance e sorteia um registro ainda não apresentado naquela sessão. São usados todos os registros das versões das bases do TCC, inclusive os que a fonte não marcou como fraude. A amostragem não é uniforme sobre o total de textos: bases menores recebem proporcionalmente mais sorteios.
+Após o consentimento, a aplicação escolhe uma das três bases com a mesma chance e sorteia um registro ainda não apresentado naquela sessão. São usados todos os registros das versões das bases do TCC, inclusive os que a fonte não marcou como fraude. A amostragem não é uniforme sobre o total de textos: bases menores recebem proporcionalmente mais sorteios.
 
 As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida. Para textos que não podem ser avaliados, use o botão de sortear outro; isso não grava um voto negativo.
 
@@ -61,6 +67,8 @@ Neste repositório, as três bases foram copiadas para `bases/`: 557 registros d
 ## Respostas coletadas
 
 Cada anotação registra nome, idade, IP da conexão quando disponível, data/hora em UTC, identificação da sessão, ID e base do texto, hash do texto, categorias e trecho. Nome e IP são dados que podem identificar participantes. Não são coletados e-mail, senha, localização ou informações do sistema operacional. O IP vem do contexto do Streamlit, sem consultar serviços externos. Em acesso por localhost, ele pode estar ausente; atrás de intermediários, pode representar a conexão disponível ao servidor, não o IP privado do computador.
+
+No PostgreSQL, as novas respostas também registram `consentimento`, `consentimento_versao`, `consentimento_hash` e `consentimento_em`. O aceite é associado à sessão e enviado junto de cada anotação. Preencher a tela inicial sem enviar anotações não cria, por si só, uma linha no banco.
 
 As novas respostas ficam na tabela `anotacoes` do PostgreSQL. O Streamlit envia os dados à API usando uma chave configurada apenas no servidor. Não há uma rota pública de consulta das respostas. O nome informado identifica a resposta, mas não é uma autenticação. Recarregar ou encerrar a sessão pode exigir nova identificação; as respostas já gravadas permanecem no banco.
 

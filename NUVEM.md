@@ -79,6 +79,8 @@ Substitua os exemplos pelos valores reais. Não crie uma seção `[api]`, pois o
 
 O Streamlit faz a chamada à API pelo servidor, não pelo navegador. Não é necessário liberar CORS para esse fluxo. Em produção, use o domínio HTTPS da API.
 
+Ao publicar a versão com TCLE, inclua `consentimento.py` no Git e atualize a API e a tela. A inicialização da API adiciona as colunas de consentimento ao banco existente. Depois, reinicie o Streamlit e faça um novo aceite. As respostas antigas são mantidas sem receber aceite retroativo. A edição do termo exige atualizar os dois serviços para que versão e hash coincidam.
+
 Se a API estiver indisponível, a resposta continua na tela e não é gravada em um SQLite alternativo. O mesmo identificador de anotação pode ser reenviado sem criar cópias.
 
 ## 5. Conferir uma anotação

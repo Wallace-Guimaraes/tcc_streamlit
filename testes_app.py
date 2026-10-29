@@ -13,6 +13,7 @@ from unittest.mock import patch
 from banco import exportar, salvar_anotacao
 from categorias import validar_anotacao
 from dados import sortear_registro
+from consentimento import HASH_TCLE, TCLE, VERSAO_TCLE, registrar_aceite
 
 
 class TestesAnotacao(unittest.TestCase):
@@ -99,6 +100,12 @@ class TestesAnotacao(unittest.TestCase):
             tela.number_input[0].set_value(25)
             tela.button[0].click().run()
             self.assertFalse(tela.exception)
+            self.assertTrue(tela.error)
+            self.assertEqual(len(tela.checkbox), 1)
+            self.assertFalse(self.banco.exists())
+            tela.checkbox[0].check()
+            next(botao for botao in tela.button if botao.label == "Concordo e quero participar").click().run()
+            self.assertFalse(tela.exception)
             self.assertEqual(len(tela.checkbox), 9)
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
             tela.checkbox[0].check().run()
@@ -111,6 +118,22 @@ class TestesAnotacao(unittest.TestCase):
             self.assertFalse(tela.exception)
             with closing(sqlite3.connect(self.banco)) as conexao:
                 self.assertEqual(conexao.execute("SELECT COUNT(*) FROM anotacoes").fetchone()[0], 1)
+
+
+class TestesConsentimento(unittest.TestCase):
+    def test_recusa_menor_e_sem_aceite(self):
+        for nome, idade, aceite in (("Pessoa", 17, True), ("Pessoa", 18, False), ("", 18, True), ("Pessoa", None, True)):
+            with self.assertRaises(ValueError):
+                registrar_aceite(nome, idade, aceite)
+
+    def test_aceite_identifica_termo_e_data(self):
+        from datetime import datetime
+
+        aceite = registrar_aceite("Pessoa", 18, True)
+        self.assertEqual(aceite["consentimento_versao"], VERSAO_TCLE)
+        self.assertEqual(aceite["consentimento_hash"], hashlib.sha256(TCLE.encode("utf-8")).hexdigest())
+        self.assertIsNotNone(datetime.fromisoformat(aceite["consentimento_em"]).tzinfo)
+        self.assertTrue(aceite["consentimento"])
 
 
 if __name__ == "__main__":

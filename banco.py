@@ -27,7 +27,7 @@ def conectar(caminho=None):
     return conexao
 
 
-def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma=False, caminho=None):
+def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma=False, caminho=None, consentimento=None):
     nome = nome.strip()
     if not nome or len(nome) > 150:
         raise ValueError("Informe seu nome, com até 150 caracteres.")
@@ -41,7 +41,7 @@ def salvar_anotacao(identificador, sessao_id, nome, idade, ip, registro, categor
         from cliente_api import enviar_anotacao
 
         return enviar_anotacao(endereco_api, os.environ.get("CHAVE_API", ""), identificador,
-                               sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma)
+                               sessao_id, nome, idade, ip, registro, categorias, trecho, nenhuma, consentimento)
     valores = (identificador, sessao_id, nome, idade, ip,
                datetime.now(timezone.utc).isoformat(timespec="seconds"), registro["id_registro"],
                registro["base_origem"], registro["sha256_texto"],

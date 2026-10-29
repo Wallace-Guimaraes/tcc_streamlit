@@ -5,14 +5,16 @@ import os
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from uuid import UUID
+from typing import Literal
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from categorias import validar_anotacao
 from dados import carregar_bases
+from consentimento import HASH_TCLE, VERSAO_TCLE
 
 cabecalho_chave = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -46,6 +48,11 @@ async def iniciar(aplicacao):
             evidencia_textual TEXT NOT NULL,
             UNIQUE (sessao_id, id_registro)
         )""")
+        conexao.execute("""ALTER TABLE anotacoes
+            ADD COLUMN IF NOT EXISTS consentimento_versao TEXT,
+            ADD COLUMN IF NOT EXISTS consentimento_hash TEXT,
+            ADD COLUMN IF NOT EXISTS consentimento_em TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS consentimento BOOLEAN""")
     yield
 
 
@@ -58,13 +65,17 @@ class Anotacao(BaseModel):
     id: UUID
     sessao_id: UUID
     nome: str = Field(min_length=1, max_length=150)
-    idade: int = Field(ge=1, le=120, strict=True)
+    idade: int = Field(ge=18, le=120, strict=True)
     ip: str | None = Field(default=None, max_length=45)
     id_registro: str = Field(pattern=r"^(GBR|FWA|FTG)-\d{6}$")
     sha256_texto: str = Field(pattern=r"^[0-9a-f]{64}$")
     categorias: list[str] = Field(max_length=8)
     trecho: str = Field(default="", max_length=100000)
     nenhuma: bool = False
+    consentimento: Literal[True]
+    consentimento_versao: str = Field(max_length=40)
+    consentimento_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    consentimento_em: AwareDatetime
 
 
 @lru_cache(maxsize=1)
@@ -84,6 +95,8 @@ def saude():
 
 @app.post("/anotacoes", dependencies=[Depends(autenticar)])
 def receber_anotacao(anotacao: Anotacao):
+    if anotacao.consentimento_versao != VERSAO_TCLE or anotacao.consentimento_hash != HASH_TCLE:
+        raise HTTPException(422, "O termo foi atualizado. Leia e aceite a versão atual antes de participar.")
     try:
         registro = registros_por_id().get(anotacao.id_registro)
     except (OSError, ValueError):
@@ -100,12 +113,14 @@ def receber_anotacao(anotacao: Anotacao):
         with conectar() as conexao:
             resultado = conexao.execute("""INSERT INTO anotacoes
                 (id, sessao_id, nome, idade, ip, id_registro, base_origem,
-                 sha256_texto, estrategias_identificadas, evidencia_textual)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s)
+                 sha256_texto, estrategias_identificadas, evidencia_textual,
+                 consentimento_versao, consentimento_hash, consentimento_em, consentimento)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
                 ON CONFLICT DO NOTHING RETURNING id""",
                 (str(anotacao.id), str(anotacao.sessao_id), anotacao.nome.strip(), anotacao.idade,
                  anotacao.ip, registro["id_registro"], registro["base_origem"], registro["sha256_texto"],
-                 json.dumps(list(dict.fromkeys(anotacao.categorias)), ensure_ascii=False), anotacao.trecho.strip()))
+                 json.dumps(list(dict.fromkeys(anotacao.categorias)), ensure_ascii=False), anotacao.trecho.strip(),
+                 anotacao.consentimento_versao, anotacao.consentimento_hash, anotacao.consentimento_em, True))
             criada = resultado.fetchone() is not None
     except psycopg.Error:
         raise HTTPException(503, "Não foi possível gravar a anotação. Tente novamente.") from None

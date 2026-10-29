@@ -6,6 +6,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
+from consentimento import registrar_aceite
 
 
 @unittest.skipUnless(all(importlib.util.find_spec(n) for n in ("fastapi", "psycopg", "httpx")), "Instale requirements_api.txt e httpx.")
@@ -30,6 +31,7 @@ class TestesAPI(unittest.TestCase):
         self.dados = {"id": str(uuid4()), "sessao_id": str(uuid4()), "nome": "Pessoa de teste", "idade": 25,
                       "ip": None, "id_registro": "FWA-000001", "sha256_texto": self.registro["sha256_texto"],
                       "categorias": ["Urgência"], "trecho": texto, "nenhuma": False}
+        self.dados.update(registrar_aceite("Pessoa de teste", 25, True))
 
     def enviar(self, dados=None):
         return self.cliente.post("/anotacoes", json=self.dados if dados is None else dados,
@@ -46,6 +48,7 @@ class TestesAPI(unittest.TestCase):
         parametros = self.conexao.execute.call_args.args[1]
         self.assertEqual(parametros[6], "FRAUDWHATSAPP_BR")
         self.assertEqual(json.loads(parametros[8]), ["Urgência"])
+        self.assertTrue(parametros[-1])
         self.assertEqual(self.enviar(dict(self.dados, trecho="Passagem inventada")).status_code, 422)
         self.assertEqual(self.enviar(dict(self.dados, sha256_texto="0"*64)).status_code, 422)
 
@@ -56,6 +59,14 @@ class TestesAPI(unittest.TestCase):
     def test_reenvio_retorna_sem_criar_copia(self):
         self.conexao.execute.return_value.fetchone.return_value = None
         self.assertEqual(self.enviar().json(), {"criada": False})
+
+    def test_exige_adulto_e_aceite_atual(self):
+        for dados in (dict(self.dados, idade=17), dict(self.dados, consentimento=False),
+                      {k: v for k, v in self.dados.items() if not k.startswith("consentimento")},
+                      dict(self.dados, consentimento_hash="0" * 64),
+                      dict(self.dados, consentimento_versao="versao-antiga")):
+            self.assertEqual(self.enviar(dados).status_code, 422)
+        self.conexao.execute.assert_not_called()
 
     def test_falha_no_postgres_nao_e_confirmada_como_gravacao(self):
         self.conexao.execute.side_effect = self.api.psycopg.OperationalError("indisponível")
