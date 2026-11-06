@@ -13,6 +13,7 @@ from fastapi.security import APIKeyHeader
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from categorias import validar_anotacao
+from anonimizacao import anonimizar_texto
 from dados import carregar_bases
 from consentimento import HASH_TCLE, VERSAO_TCLE, validar_email
 from distribuicao import (RegistroIndisponivel, bloquear_coleta, conferir_vaga,
@@ -120,6 +121,7 @@ def sortear(pedido: PedidoSorteio):
     if reserva["id_registro"] is None:
         return {"registro": None, "concluido": reserva["concluido"]}
     registro = dict(registros[reserva["id_registro"]], reserva_id=reserva["reserva_id"])
+    registro["texto"] = anonimizar_texto(registro["texto"])
     return {"registro": registro, "concluido": False}
 
 
@@ -137,7 +139,10 @@ def receber_anotacao(anotacao: Anotacao):
         raise HTTPException(422, "Informe o nome do anotador.")
     try:
         email = validar_email(anotacao.email)
-        validar_anotacao(registro["texto"], anotacao.categorias, anotacao.trecho, anotacao.nenhuma)
+        texto = anonimizar_texto(registro["texto"])
+        validar_anotacao(texto, anotacao.categorias, anotacao.trecho, anotacao.nenhuma,
+                         texto_original=registro["texto"])
+        trecho = anonimizar_texto(anotacao.trecho, referencia=registro["texto"])
     except ValueError as erro:
         raise HTTPException(422, str(erro)) from None
     try:
@@ -152,7 +157,7 @@ def receber_anotacao(anotacao: Anotacao):
                 ON CONFLICT DO NOTHING RETURNING id""",
                 (str(anotacao.id), str(anotacao.sessao_id), anotacao.nome.strip(), email,
                  anotacao.ip, registro["id_registro"], registro["base_origem"], registro["sha256_texto"],
-                 json.dumps(list(dict.fromkeys(anotacao.categorias)), ensure_ascii=False), anotacao.trecho.strip(),
+                 json.dumps(list(dict.fromkeys(anotacao.categorias)), ensure_ascii=False), trecho.strip(),
                  anotacao.consentimento_versao, anotacao.consentimento_hash, anotacao.consentimento_em, True))
             criada = resultado.fetchone() is not None
             liberar_reserva(conexao, str(anotacao.sessao_id), str(anotacao.id))

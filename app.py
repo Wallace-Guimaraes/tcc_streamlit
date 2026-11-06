@@ -8,6 +8,7 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 from banco import salvar_anotacao
 from categorias import CATEGORIAS
+from anonimizacao import anonimizar_texto
 from cliente_api import sortear_pela_api
 from consentimento import HASH_TCLE, TCLE, VERSAO_TCLE, registrar_aceite
 
@@ -121,6 +122,7 @@ if registro is None:
             st.rerun()
     st.stop()
 
+registro = dict(registro, texto=anonimizar_texto(registro["texto"]))
 coluna_texto, coluna_resposta = st.columns([1.15, 1], gap="medium")
 with coluna_texto:
     st.caption(f"{registro['base_origem']} · {registro['id_registro']}")

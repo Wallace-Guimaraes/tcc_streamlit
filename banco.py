@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from categorias import validar_anotacao
+from anonimizacao import anonimizar_texto
 from consentimento import validar_email
 
 BANCO = Path(os.environ.get("BANCO_ANOTACOES", str(Path(__file__).resolve().parent / "armazenamento/anotacoes.sqlite3")))
@@ -33,7 +34,9 @@ def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categor
     if not nome or len(nome) > 150:
         raise ValueError("Informe seu nome, com até 150 caracteres.")
     email = validar_email(email)
-    validar_anotacao(registro["texto"], categorias, trecho, nenhuma)
+    validar_anotacao(anonimizar_texto(registro["texto"]), categorias, trecho, nenhuma,
+                     texto_original=registro["texto"])
+    trecho = anonimizar_texto(trecho, referencia=registro["texto"])
     endereco_api = os.environ.get("URL_API", "").strip()
     if caminho is None:
         if not endereco_api:

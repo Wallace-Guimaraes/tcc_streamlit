@@ -97,6 +97,29 @@ class TestesAPI(unittest.TestCase):
             self.assertEqual(self.enviar().status_code, 409)
         self.conexao.execute.assert_not_called()
 
+    def test_oculta_identificadores_do_registro_e_preserva_identificacao_do_participante(self):
+        original = 'Me chamo Maria da Silva. Maria da Silva usa contato@exemplo.org e https://exemplo.org.'
+        tratado = 'Me chamo [PESSOA]. [PESSOA] usa [EMAIL] e [LINK].'
+        self.registro['texto'] = original
+        self.registro['sha256_texto'] = hashlib.sha256(original.encode()).hexdigest()
+        self.dados['sha256_texto'] = self.registro['sha256_texto']
+        reserva = {'id_registro': self.registro['id_registro'], 'reserva_id': self.dados['id'], 'concluido': False}
+        with patch.object(self.api, 'reservar_registro', return_value=reserva):
+            resposta = self.cliente.post('/sorteio', json={'sessao_id': self.dados['sessao_id']},
+                                         headers={'X-API-Key': 'chave-de-teste'})
+        self.assertEqual(resposta.json()['registro']['texto'], tratado)
+        self.assertEqual(resposta.json()['registro']['sha256_texto'], self.dados['sha256_texto'])
+        self.assertEqual(self.registro['texto'], original)
+        for trecho in (original, tratado, 'Maria da Silva usa contato@exemplo.org'):
+            self.conexao.execute.reset_mock()
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho)).status_code, 200)
+            parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
+                              if 'INSERT INTO anotacoes' in chamada.args[0])
+            self.assertEqual(parametros[2:4], ('Pessoa de teste', 'pessoa@example.org'))
+            self.assertNotIn('Maria da Silva', parametros[9])
+            self.assertNotIn('contato@exemplo.org', parametros[9])
+        self.assertEqual(self.enviar(dict(self.dados, trecho='Me chamo Pessoa Inventada.')).status_code, 422)
+
 
 class TestesCliente(unittest.TestCase):
     def test_sem_url_nao_grava_em_sqlite_alternativo(self):

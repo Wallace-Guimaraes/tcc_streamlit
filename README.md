@@ -49,6 +49,8 @@ As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa d
 
 O trecho é obrigatório quando houver alguma estratégia marcada e opcional ao escolher `Nenhuma das categorias`. Quando preenchido, deve ser copiado do registro apresentado. Podem ser usadas várias passagens, uma por linha, para justificar as categorias. O sistema verifica a presença dos trechos, mas a adequação das categorias depende da análise humana. A escolha e o texto permanecem na tela enquanto o formulário é preenchido. Ao salvar, é sorteado o próximo registro.
 
+Os textos exibidos e as novas justificativas passam pelas regras de `anonimizacao.py`. E-mails recebem `[EMAIL]`, links recebem `[LINK]` e nomes identificados em apresentações como “meu nome é”, “me chamo” ou “Nome completo” recebem `[PESSOA]`. As ocorrências do mesmo nome completo também são substituídas nas justificativas. Nome e e-mail dos participantes continuam gravados nos campos de identificação. As regras de nomes são parciais e exigem revisão humana antes da divulgação. As fontes originais e o hash usado para identificar sua versão são preservados. Justificativas antigas e exportações do SQLite continuam com o conteúdo original e precisam de tratamento próprio antes de serem compartilhadas.
+
 As respostas de outras pessoas e os rótulos originais de fraude não aparecem na tela. O sorteio livre não garante que dois participantes recebam os mesmos textos; para calcular concordância, use apenas registros efetivamente anotados por ambos, ou defina uma amostra compartilhada em uma próxima etapa.
 
 ## Arquivos
