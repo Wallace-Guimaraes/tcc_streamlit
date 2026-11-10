@@ -17,7 +17,7 @@ class TestesTela(unittest.TestCase):
     def abrir(self):
         from streamlit.testing.v1 import AppTest
 
-        texto = 'ME CHAMO MARIA DA SILVA. Confirme hoje em t.me/exemplo ou nome.com@exemplo.org.'
+        texto = 'ME CHAMO MARIA DA SILVA. Confirme hoje com @bottelegram em t.me/exemplo ou nome.com@exemplo.org.'
         registro = dict(id_registro='GBR-000001', base_origem='GOLPEBR', texto=texto,
                         sha256_texto=hashlib.sha256(texto.encode()).hexdigest(), reserva_id=str(uuid4()))
         sessao = str(uuid4())
@@ -49,7 +49,7 @@ class TestesTela(unittest.TestCase):
             self.assertIn('não significa que o registro não é fraude', guia)
             self.assertCountEqual([item.label for item in tela.checkbox], [*CATEGORIAS, 'Nenhuma das categorias'])
             self.assertEqual(tela.text_area[0].value,
-                             'ME CHAMO [PESSOA]. Confirme hoje em [LINK] ou [EMAIL].')
+                             'ME CHAMO [PESSOA]. Confirme hoje com [USUARIO] em [LINK] ou [EMAIL].')
             self.assertIn('MARIA DA SILVA', registro['texto'])
             sorteio.assert_called_once()
             salvar.assert_not_called()

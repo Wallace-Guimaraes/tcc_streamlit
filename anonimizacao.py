@@ -9,6 +9,9 @@ LINK = re.compile(
     r"(?:com|org|net|edu|gov|io|app|online|site|xyz|br|me|ly|info|biz|co|gg|tv|dev|tech|digital|store|pro|vip|top|click)\b"
     r"(?:[/?#][^\s<>\"'\[\]{}]*)?"
 )
+# Menções a perfis/bots, depois de tratar e-mails e URLs inteiros. Pontos e
+# hífens internos são aceitos; a pontuação ao final da frase é preservada.
+USUARIO = re.compile(r"(?<![\w@])@[\w]+(?:[.-][\w]+)*", re.UNICODE)
 # Apresentações explícitas também aparecem em caixa alta/baixa. Palavras de
 # continuação comuns evitam engolir a instrução persuasiva após o nome.
 # Esta lista é uma heurística: não constitui reconhecimento geral de pessoas.
@@ -47,6 +50,7 @@ def anonimizar_texto(texto, referencia=None):
     # Primeiro o e-mail inteiro: a parte antes do @ pode parecer um domínio.
     texto = EMAIL.sub("[EMAIL]", texto)
     texto = LINK.sub(ocultar_link, texto)
+    texto = USUARIO.sub("[USUARIO]", texto)
     if nomes:
         # A validação do trecho permite diferenças de espaço/quebra de linha.
         # A máscara precisa reconhecer as mesmas variantes aceitas pelo formulário.

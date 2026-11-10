@@ -114,6 +114,8 @@ Configure os backups do banco pela hospedagem. Um volume conserva os dados entre
 
 Atualize a tela com `app.py` e publique `anonimizacao.py` tanto no Streamlit quanto na API. A correção dos e-mails e nomes precisa estar no backend para proteger a saída do sorteio e as novas evidências. Reinicie os serviços e inicie uma nova sessão para a conferência; registros já carregados em sessões antigas podem conservar o texto recebido antes da atualização. As respostas históricas não são reescritas.
 
+A mesma atualização de `anonimizacao.py` inclui menções como `@bottelegram`, substituídas por `[USUARIO]`. Confira em homologação a máscara no relato e no trecho salvo, junto de um e-mail fictício que deve continuar recebendo `[EMAIL]`.
+
 Inclua `relatorio_coleta.py` na publicação da API; o Dockerfile já copia o script. Ele é executado manualmente no terminal privado do serviço com `python relatorio_coleta.py`, usando a `DATABASE_URL` do ambiente. No Compose local, use `docker compose exec api python relatorio_coleta.py`. Veja os indicadores e limites no README. O script não cria tabelas nem uma rota administrativa.
 
 Essas melhorias não exigem novas dependências de produção ou alterações de esquema, TCLE, categorias, contratos HTTP, hashes, distribuição e reservas. Antes de publicar, execute a suíte descrita no README. Use um PostgreSQL exclusivo de testes em `TEST_DATABASE_URL` para a integração de concorrência e cobertura; nunca a conexão de produção.

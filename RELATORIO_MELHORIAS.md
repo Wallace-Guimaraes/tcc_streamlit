@@ -128,3 +128,23 @@ O texto completo do TCC não está neste repositório. Portanto, foram atualizad
 - **Capítulo 6 — Resultados:** podem ser relatados os 47 testes aprovados e os três de integração não executados, com data e ambiente. Os números de cobertura devem vir de uma execução efetiva do relatório no banco restrito. Não interpretar sessões como pessoas distintas, cobertura como concordância ou máscaras como garantia de anonimização integral.
 
 A implementação local e a documentação foram entregues; publicação, revisão visual e integração PostgreSQL real continuam explicitamente pendentes.
+
+## Complemento — menções com @ (10/11/2026)
+
+Após a primeira entrega, o commit `5c2b67b` foi enviado à branch `main` do GitHub a pedido do usuário. Esse envio não comprova deploy ou homologação dos serviços. O registro de 50 testes acima corresponde àquela implementação inicial.
+
+Foi acrescentada a regra de menções a perfis e bots: `@bottelegram`, `@BOT_123`, `@maria.silva` e `@perfil-teste` passam a receber **`[USUARIO]`**, sem exigir apresentação como nome de pessoa. São aceitos letras, números, sublinhado e pontos ou hífens internos; a pontuação ao final da frase é preservada. E-mails e URLs são mascarados antes das menções, mantendo `[EMAIL]` e `[LINK]`. Um `@` isolado permanece no texto. A regra não consulta plataformas externas nem verifica se o perfil existe.
+
+A função compartilhada protege a saída de sorteio da API, a exibição na tela e as novas evidências, preservando o texto e o SHA-256 de origem e a identificação dos participantes. Evidências com o identificador original ou com a máscara continuam válidas; um identificador inventado é recusado. As respostas históricas não são reescritas.
+
+Arquivos deste complemento: `anonimizacao.py`, `testes_anonimizacao.py`, `testes_api.py`, `testes_tela.py`, `README.md`, `NUVEM.md` e este relatório. Foram adicionados três testes unitários e um teste HTTP com banco simulado, e o cenário de tela existente passou a incluir uma menção fictícia. A documentação descreve o novo marcador e a necessidade de atualizar a função tanto na API quanto no Streamlit.
+
+Validação executada em **10/11/2026, aproximadamente 12h26 (UTC−03:00)**, no mesmo ambiente descrito anteriormente:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -p "testes_*.py" -v
+```
+
+Resultado observado: **54 testes descobertos; 51 aprovados; 3 pulados; nenhuma falha ou erro; código de saída 0**, em **1,995 s**. Os três testes de integração PostgreSQL permaneceram pulados por ausência de `TEST_DATABASE_URL`; API e tela usam simulações, sem verificar gravação em PostgreSQL real. Os avisos de depreciação do TestClient e de contexto do AppTest continuam presentes. O arquivo `docs/testes_2026-11-10.txt` preserva a execução anterior, de 50 casos, e não foi sobrescrito por este complemento.
+
+A proteção continua parcial e baseada em regex; os demais limites e a necessidade de revisão humana permanecem. Este complemento foi implementado e testado localmente, sem novo commit, push ou deploy.

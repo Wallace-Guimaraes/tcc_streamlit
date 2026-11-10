@@ -89,6 +89,27 @@ class TestesAPI(unittest.TestCase):
             for identificador in ('MARIA DA SILVA', 'nome.com@exemplo.org', 't.me/exemplo'):
                 self.assertNotIn(identificador, parametros[9])
 
+    def test_mencao_mascarada_no_sorteio_e_na_gravacao_da_evidencia(self):
+        original = 'Confirme hoje com @bottelegram ou contato@exemplo.org.'
+        tratado = 'Confirme hoje com [USUARIO] ou [EMAIL].'
+        self.registro['texto'] = original
+        self.registro['sha256_texto'] = hashlib.sha256(original.encode()).hexdigest()
+        reserva = {'id_registro': self.registro['id_registro'], 'reserva_id': self.dados['id']}
+        with patch.object(self.api, 'reservar_registro', return_value=reserva):
+            sorteado = self.cliente.post('/sorteio', json={'sessao_id': self.dados['sessao_id']},
+                                        headers={'X-API-Key': 'chave-de-teste'}).json()['registro']
+        self.assertEqual(sorteado['texto'], tratado)
+        self.assertEqual(sorteado['sha256_texto'], self.registro['sha256_texto'])
+        self.assertEqual(self.registro['texto'], original)
+        for trecho, esperado in ((original, tratado), (tratado, tratado), ('@bottelegram', '[USUARIO]')):
+            self.conexao.execute.reset_mock()
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             sha256_texto=self.registro['sha256_texto'])).status_code, 200)
+            parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
+                              if 'INSERT INTO anotacoes' in chamada.args[0])
+            self.assertEqual(parametros[9], esperado)
+            self.assertEqual(parametros[2:4], ('Pessoa de teste', 'pessoa@example.org'))
+
     def test_reenvio_retorna_sem_criar_copia(self):
         self.conexao.execute.return_value.fetchone.return_value = None
         self.assertEqual(self.enviar().json(), {"criada": False})

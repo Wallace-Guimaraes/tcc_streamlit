@@ -11,6 +11,26 @@ class TestesAnonimizacao(unittest.TestCase):
         esperado = 'Envie para [EMAIL]. Acesse [LINK], [LINK] ou [LINK]!'
         self.assertEqual(anonimizar_texto(original), esperado)
 
+    def test_mencoes_a_perfis_e_bots_preservam_pontuacao(self):
+        original = 'Fale com @bottelegram, (@BOT_123) ou @maria.silva!\nProcure @perfil-teste e @João.'
+        esperado = 'Fale com [USUARIO], ([USUARIO]) ou [USUARIO]!\nProcure [USUARIO] e [USUARIO].'
+        self.assertEqual(anonimizar_texto(original), esperado)
+        self.assertEqual(anonimizar_texto(esperado), esperado)
+
+    def test_mencoes_nao_interferem_em_emails_links_e_arrobas_isoladas(self):
+        original = 'Escreva para nome.com@exemplo.org ou @bottelegram. Veja https://t.me/@outro_bot; @ não é perfil.'
+        esperado = 'Escreva para [EMAIL] ou [USUARIO]. Veja [LINK]; @ não é perfil.'
+        self.assertEqual(anonimizar_texto(original), esperado)
+
+    def test_evidencia_aceita_mencao_original_ou_mascarada(self):
+        original = 'Confirme hoje com @bottelegram.'
+        tratado = 'Confirme hoje com [USUARIO].'
+        for trecho in (original, tratado, '@bottelegram', '[USUARIO]'):
+            validar_anotacao(tratado, ['Urgência'], trecho, texto_original=original)
+            self.assertNotIn('@bottelegram', anonimizar_texto(trecho, referencia=original))
+        with self.assertRaises(ValueError):
+            validar_anotacao(tratado, ['Urgência'], '@perfil_inventado', texto_original=original)
+
     def test_nome_com_contexto_e_repeticao_no_trecho(self):
         original = 'Meu nome é Maria da Silva. Maria da Silva pede ajuda ao seu filho.'
         self.assertEqual(anonimizar_texto(original),
