@@ -27,6 +27,8 @@ Abra o endereço mostrado no terminal, normalmente `http://localhost:8501`.
 
 O formulário usa duas colunas no computador: texto à esquerda e resposta à direita. Textos longos têm rolagem dentro do próprio campo. As explicações das categorias ficam nos ícones de ajuda. Para alternar entre claro e escuro, abra o menu `⋮` no canto superior direito e escolha o tema. A interface também acompanha a preferência de tema do sistema.
 
+Antes do formulário, o guia recolhido **Como realizar a anotação** complementa as explicações com exemplos fictícios das oito categorias e critérios de decisão. Os exemplos são estáticos e não entram na fila nem nas respostas.
+
 Antes do formulário, a aplicação apresenta o Termo de Consentimento Livre e Esclarecido, com cópia para download. A pessoa precisa informar nome completo e e-mail e marcar a declaração de maioridade e aceite. Não é solicitada idade. O texto e sua versão estão em `consentimento.py`. Os responsáveis são Wallace Luan da Cruz Guimarães e Vinicíus Yoshimitsu Aoki Alvez, pelo contato `wallace.guimaraes@discente.ufra.edu.br`.
 
 O termo prevê a guarda dos dados por 5 (cinco) anos após o término da pesquisa, sob responsabilidade dos pesquisadores. O código não executa descarte automático. Cabe aos pesquisadores manter os backups e realizar o descarte ao final desse prazo, conforme o termo e o protocolo da pesquisa.
@@ -45,11 +47,17 @@ Todos os 7.412 registros são cadastrados na fila, inclusive os que ainda têm z
 
 Cobertura depende de participação suficiente: uma avaliação por registro exige pelo menos 7.412 respostas salvas; a meta de dez por registro exige 74.120 no total. Pular ou abandonar textos não cria respostas artificiais. A coleta termina quando todos os registros têm pelo menos dez avaliações; falta de textos para uma sessão não é apresentada como conclusão global.
 
-As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida. Para textos que não podem ser avaliados, use o botão de sortear outro; isso não grava um voto negativo.
+As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida, e não significa que o registro não é fraude. Para textos que não podem ser avaliados, use **Pular texto**; isso libera a reserva na próxima solicitação à API e não grava voto negativo. Se a API estiver indisponível, a liberação aguarda uma solicitação bem-sucedida ou a expiração da reserva.
 
 O trecho é obrigatório quando houver alguma estratégia marcada e opcional ao escolher `Nenhuma das categorias`. Quando preenchido, deve ser copiado do registro apresentado. Podem ser usadas várias passagens, uma por linha, para justificar as categorias. O sistema verifica a presença dos trechos, mas a adequação das categorias depende da análise humana. A escolha e o texto permanecem na tela enquanto o formulário é preenchido. Ao salvar, é sorteado o próximo registro.
 
-Os textos exibidos e as novas justificativas passam pelas regras de `anonimizacao.py`. E-mails recebem `[EMAIL]`, links recebem `[LINK]` e nomes identificados em apresentações como “meu nome é”, “me chamo” ou “Nome completo” recebem `[PESSOA]`. As ocorrências do mesmo nome completo também são substituídas nas justificativas. Nome e e-mail dos participantes continuam gravados nos campos de identificação. As regras de nomes são parciais e exigem revisão humana antes da divulgação. As fontes originais e o hash usado para identificar sua versão são preservados. Justificativas antigas e exportações do SQLite continuam com o conteúdo original e precisam de tratamento próprio antes de serem compartilhadas.
+Os textos exibidos e as novas justificativas passam pelas regras de `anonimizacao.py`. E-mails recebem `[EMAIL]`, links recebem `[LINK]` e nomes identificados em apresentações explícitas recebem `[PESSOA]`. A API mascara o registro antes do sorteio e usa o texto original como referência ao tratar novas justificativas. As fontes originais e o SHA-256 do texto original são preservados. A tela reaplica as máscaras sem alterar o ID ou o hash.
+
+A correção de novembro de 2026 trata e-mails antes dos links, inclusive `nome.com@exemplo.org`, que antes podia ficar parcialmente exposto. Os links incluem endereços com `http://`, `https://`, `ftp://`, `www.` e domínios sem protocolo das terminações enumeradas em `LINK`, incluindo os exemplos fictícios `t.me/exemplo` e `bit.ly/oferta`. Não se trata de uma lista universal de domínios.
+
+As apresentações “meu nome é”, “me chamo”, “nome:” e “nome completo:” aceitam nomes com iniciais maiúsculas, em caixa alta ou em minúsculas, com conectores como “da” e “de”. “Meu nome é:” e “me chamo:” também são aceitos. Ocorrências do mesmo nome completo são substituídas nas justificativas, inclusive com diferenças de caixa, espaços ou quebras de linha. Palavras comuns de continuação limitam a captura para preservar instruções como “confirme hoje”.
+
+**A anonimização é parcial, baseada em regex.** Nomes sem apresentação, grafias mistas não previstas, nomes divididos em linhas, apelidos, telefones, CPF, endereços e outros identificadores podem permanecer; o contexto também pode permitir reidentificação. Os limites de captura de nomes são heurísticos e podem produzir falsos positivos ou negativos. É necessária revisão humana antes de qualquer divulgação. Nome e e-mail dos participantes continuam gravados nos campos de identificação conforme o TCLE. As correções valem para a exibição e novas justificativas: não reescrevem respostas antigas nem exportações do SQLite.
 
 As respostas de outras pessoas e os rótulos originais de fraude não aparecem na tela. O sorteio livre não garante que dois participantes recebam os mesmos textos; para calcular concordância, use apenas registros efetivamente anotados por ambos, ou defina uma amostra compartilhada em uma próxima etapa.
 
@@ -63,9 +71,14 @@ distribuicao.py    fila, reservas e limite de respostas no PostgreSQL
 banco.py           envio para a API e acesso ao SQLite antigo
 cliente_api.py     cliente HTTP usado pelo servidor Streamlit
 api.py             validação e gravação no PostgreSQL
+anonimizacao.py    máscaras parciais dos relatos e novas justificativas
+relatorio_coleta.py consulta administrativa agregada e somente leitura
 compose.yaml       execução dos três serviços com Docker
 NUVEM.md           publicação e configuração dos serviços
 testes_app.py      testes da gravação e do formulário
+testes_tela.py     guia, máscaras, falha da API e ação de pular na tela
+testes_relatorio.py testes da consulta agregada com conexão simulada
+RELATORIO_MELHORIAS.md mudanças, evidências de testes e limites da entrega
 requirements.txt   dependências
 bases/             cópias locais dos CSVs de origem (fora do Git)
 armazenamento/     arquivos antigos do modo SQLite (fora do Git)
@@ -73,7 +86,7 @@ armazenamento/     arquivos antigos do modo SQLite (fora do Git)
 
 Na primeira execução, as bases são baixadas dos endereços públicos declarados em `dados.py`. Os hashes SHA-256 conferem a versão usada no TCC. Se a fonte mudar, a aplicação interrompe o carregamento. Também é possível copiar `golpebr.csv`, `whatsapp.csv` e `telegram.csv` do projeto do TCC para `bases/`.
 
-Neste repositório, as três bases foram copiadas para `bases/`: 557 registros do GolpeBR, 2.640 do WhatsApp e 4.215 do Telegram, totalizando 7.412. Elas são usadas localmente e não precisam ser baixadas outra vez. Como `bases/` não vai para o Git, em um novo servidor será necessário copiar esses arquivos ou permitir o download das versões conferidas.
+As versões de referência contêm 557 registros do GolpeBR, 2.640 do WhatsApp e 4.215 do Telegram, totalizando 7.412. Como `bases/` não vai para o Git, um clone novo não contém esses CSVs. Será necessário copiar os arquivos ou permitir o download das versões conferidas. Os hashes de referência estão em `FONTES`, em `dados.py`; não foram recalculados ou substituídos nesta melhoria.
 
 ## Respostas coletadas
 
@@ -123,6 +136,17 @@ Referências: [contexto e IP no Streamlit](https://docs.streamlit.io/develop/api
 
 ## Testar
 
+Para a suíte completa, com Python 3.12 e um ambiente virtual criado:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements_api.txt httpx
+.\.venv\Scripts\python.exe -m unittest discover -p "testes_*.py" -v
+```
+
+Sem `TEST_DATABASE_URL`, os testes de PostgreSQL real são explicitamente pulados. Os demais usam textos fictícios, SQLite temporário, AppTest do Streamlit e conexões simuladas. O teste do formulário envia os campos juntos no botão de submissão, como ocorre no navegador. A validação automática não substitui a revisão visual em celular ou a homologação com os serviços reais. O histórico desta entrega está em [RELATORIO_MELHORIAS.md](RELATORIO_MELHORIAS.md).
+
+Para executar somente a gravação e o formulário:
+
 ```powershell
 .\.venv\Scripts\python.exe -m unittest testes_app -v
 ```
@@ -136,7 +160,27 @@ Para testar as rotas da API e o tratamento de falhas de conexão:
 
 Os testes HTTP substituem a conexão PostgreSQL por um objeto de teste. Eles não substituem a conferência com um PostgreSQL real após subir os serviços, descrita em `NUVEM.md`.
 
-Os testes específicos da distribuição ficam em `testes_distribuicao.py`. Para executar a integração real de concorrência, use um PostgreSQL separado e configure `TEST_DATABASE_URL` antes de rodar `python -m unittest testes_postgres -v`. Esse teste cria e remove somente um schema temporário `teste_coleta_*`, sem usar `public.anotacoes`. Ele verifica cobertura inicial, preenchimento por participantes simultâneos, limite de dez, reenvio e reaproveitamento de vagas expiradas. Não use a conexão de produção para os testes.
+Os testes específicos da distribuição ficam em `testes_distribuicao.py`. Para executar a integração real de concorrência, use um PostgreSQL separado e configure `TEST_DATABASE_URL` antes de rodar `.\.venv\Scripts\python.exe -m unittest testes_postgres -v`. Esses testes criam e removem somente um schema temporário `teste_coleta_*`, sem usar `public.anotacoes`. Verificam cobertura inicial, preenchimento por participantes simultâneos, limite de dez, reenvio, reaproveitamento de vagas expiradas e a consulta administrativa incluindo zeros. Não use a conexão de produção para os testes.
+
+### Relatório administrativo de cobertura
+
+No ambiente restrito do pesquisador, instale `requirements_api.txt` e forneça `DATABASE_URL` pelo mecanismo privado já usado na administração do PostgreSQL. O script lê essa variável de ambiente; não carrega `.env` ou Secrets automaticamente. Prefira uma credencial com permissão de leitura nas tabelas `registros_coleta` e `anotacoes`.
+
+```powershell
+.\.venv\Scripts\python.exe relatorio_coleta.py
+```
+
+No Docker Compose, a conexão já está no contêiner da API:
+
+```powershell
+docker compose exec api python relatorio_coleta.py
+```
+
+O comando executa um único `SELECT` em transação somente leitura, sem inicializar a API ou executar migrações. Exibe registros cadastrados, registros com 0, 1–9 e 10 ou mais respostas, registros com alguma resposta e respostas, por base e no total, com data/hora UTC. O `LEFT JOIN` inclui registros sem votos. A contagem de respostas efetivamente gravadas também inclui eventuais respostas históricas sem correspondência no catálogo, informadas à parte para tornar divergências visíveis. As reservas não entram nos indicadores.
+
+Não há exportação individual, painel ou rota pública. A consulta não lê nome, e-mail, IP, sessão, estratégias, evidências ou texto original. Falhas retornam uma mensagem resumida e código de saída 1, sem imprimir a conexão. Não compartilhe a credencial ao guardar ou apresentar o resultado agregado.
+
+O resultado é um retrato pontual. **Respostas**, **registros com respostas** e **pessoas participantes** são medidas diferentes; o script não estima pessoas distintas por sessões. Cobertura não comprova concordância, consenso nem validação científica dos rótulos.
 
 ### Conferir o andamento no DBeaver
 

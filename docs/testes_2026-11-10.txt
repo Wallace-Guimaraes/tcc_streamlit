@@ -1,0 +1,146 @@
+python.exe : test_aceita_trechos_originais_e_tratados_sem_aceitar_identificador_inventado 
+(testes_anonimizacao.TestesAnonimizacao.test_aceita_trechos_originais_e_tratados_sem_aceitar_identificador_inventado) 
+... ok
+No linha:2 caractere:34
++ ...  = 'utf-8'; & .\.venv\Scripts\python.exe -m unittest discover -p 'tes ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (test_aceita_tre...ventado) ... ok:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+test_apresentacoes_em_caixa_alta_baixa_e_com_dois_pontos 
+(testes_anonimizacao.TestesAnonimizacao.test_apresentacoes_em_caixa_alta_baixa_e_com_dois_pontos) ... ok
+test_dominio_sem_protocolo_oculta_consulta_e_fragmento 
+(testes_anonimizacao.TestesAnonimizacao.test_dominio_sem_protocolo_oculta_consulta_e_fragmento) ... ok
+test_email_com_dominio_na_parte_local_e_links_curtos 
+(testes_anonimizacao.TestesAnonimizacao.test_email_com_dominio_na_parte_local_e_links_curtos) ... ok
+test_email_links_e_pontuacao (testes_anonimizacao.TestesAnonimizacao.test_email_links_e_pontuacao) ... ok
+test_nao_promete_reconhecer_nome_sem_apresentacao 
+(testes_anonimizacao.TestesAnonimizacao.test_nao_promete_reconhecer_nome_sem_apresentacao) ... ok
+test_nome_com_contexto_e_repeticao_no_trecho 
+(testes_anonimizacao.TestesAnonimizacao.test_nome_com_contexto_e_repeticao_no_trecho) ... ok
+test_nome_nao_oculta_instrucao_apos_apresentacao 
+(testes_anonimizacao.TestesAnonimizacao.test_nome_nao_oculta_instrucao_apos_apresentacao) ... ok
+test_nome_repetido_com_espacamento_normalizado_na_evidencia 
+(testes_anonimizacao.TestesAnonimizacao.test_nome_repetido_com_espacamento_normalizado_na_evidencia) ... ok
+test_preserva_contexto_das_estrategias_e_marcadores 
+(testes_anonimizacao.TestesAnonimizacao.test_preserva_contexto_das_estrategias_e_marcadores) ... ok
+test_exige_email_e_aceite_atual (testes_api.TestesAPI.test_exige_email_e_aceite_atual) ... C:\Users\Wallace 
+Luan\OneDrive\Documentos\Projeto\tcc_streamlit\.venv\Lib\site-packages\fastapi\testclient.py:1: 
+StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+ok
+test_falha_no_postgres_nao_e_confirmada_como_gravacao 
+(testes_api.TestesAPI.test_falha_no_postgres_nao_e_confirmada_como_gravacao) ... ok
+test_grava_apenas_apos_validar_texto_e_categoria 
+(testes_api.TestesAPI.test_grava_apenas_apos_validar_texto_e_categoria) ... ok
+test_nenhuma_aceita_trecho_vazio_e_vazio_sem_decisao_e_recusado 
+(testes_api.TestesAPI.test_nenhuma_aceita_trecho_vazio_e_vazio_sem_decisao_e_recusado) ... ok
+test_novos_padroes_mascaram_sorteio_e_evidencia (testes_api.TestesAPI.test_novos_padroes_mascaram_sorteio_e_evidencia) 
+... ok
+test_oculta_identificadores_do_registro_e_preserva_identificacao_do_participante 
+(testes_api.TestesAPI.test_oculta_identificadores_do_registro_e_preserva_identificacao_do_participante) ... ok
+test_recusa_envio_sem_chave (testes_api.TestesAPI.test_recusa_envio_sem_chave) ... ok
+test_recusa_resposta_sem_vaga (testes_api.TestesAPI.test_recusa_resposta_sem_vaga) ... ok
+test_reenvio_retorna_sem_criar_copia (testes_api.TestesAPI.test_reenvio_retorna_sem_criar_copia) ... ok
+test_saude_confere_banco (testes_api.TestesAPI.test_saude_confere_banco) ... ok
+test_sorteio_entrega_reserva_sem_expor_respostas 
+(testes_api.TestesAPI.test_sorteio_entrega_reserva_sem_expor_respostas) ... ok
+test_validacoes_impedem_gravacao_antes_de_abrir_banco 
+(testes_api.TestesAPI.test_validacoes_impedem_gravacao_antes_de_abrir_banco) ... ok
+test_erro_de_rede_nao_grava_em_sqlite_alternativo 
+(testes_api.TestesCliente.test_erro_de_rede_nao_grava_em_sqlite_alternativo) ... ok
+test_sem_url_nao_grava_em_sqlite_alternativo (testes_api.TestesCliente.test_sem_url_nao_grava_em_sqlite_alternativo) 
+... ok
+test_ausencia_explicita_nao_se_confunde_com_vazio 
+(testes_app.TestesAnotacao.test_ausencia_explicita_nao_se_confunde_com_vazio) ... ok
+test_formulario_preserva_texto_e_grava (testes_app.TestesAnotacao.test_formulario_preserva_texto_e_grava) ... 
+2026-11-10 12:09:00.967 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing 
+ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_mesmo_relato_recebe_varias_respostas_e_exporta_todas 
+(testes_app.TestesAnotacao.test_mesmo_relato_recebe_varias_respostas_e_exporta_todas) ... ok
+test_salva_metadados_sem_duplicar_envio (testes_app.TestesAnotacao.test_salva_metadados_sem_duplicar_envio) ... ok
+test_trecho_obrigatorio_e_literal (testes_app.TestesAnotacao.test_trecho_obrigatorio_e_literal) ... ok
+test_varias_passagens_e_categorias (testes_app.TestesAnotacao.test_varias_passagens_e_categorias) ... ok
+test_aceite_identifica_termo_e_data (testes_app.TestesConsentimento.test_aceite_identifica_termo_e_data) ... ok
+test_exige_nome_email_e_declaracao_de_aceite 
+(testes_app.TestesConsentimento.test_exige_nome_email_e_declaracao_de_aceite) ... ok
+test_decima_resposta_cabe_e_decima_primeira_e_recusada 
+(testes_distribuicao.TestesDistribuicao.test_decima_resposta_cabe_e_decima_primeira_e_recusada) ... ok
+test_esgotamento_na_sessao_nao_afirma_conclusao_global 
+(testes_distribuicao.TestesDistribuicao.test_esgotamento_na_sessao_nao_afirma_conclusao_global) ... ok
+test_pular_libera_reserva_antes_de_sortear_sem_gravar_voto 
+(testes_distribuicao.TestesDistribuicao.test_pular_libera_reserva_antes_de_sortear_sem_gravar_voto) ... ok
+test_reabrir_tela_reutiliza_reserva_ativa 
+(testes_distribuicao.TestesDistribuicao.test_reabrir_tela_reutiliza_reserva_ativa) ... ok
+test_reenvio_ja_salvo_nao_precisa_de_nova_vaga 
+(testes_distribuicao.TestesDistribuicao.test_reenvio_ja_salvo_nao_precisa_de_nova_vaga) ... ok
+test_reserva_expirada_nao_toma_vaga_de_outros 
+(testes_distribuicao.TestesDistribuicao.test_reserva_expirada_nao_toma_vaga_de_outros) ... ok
+test_sem_reserva_nao_insere_resposta (testes_distribuicao.TestesDistribuicao.test_sem_reserva_nao_insere_resposta) ... 
+ok
+test_abandono_libera_vaga_e_resposta_atrasada_nao_excede_limite 
+(testes_postgres.TestesPostgres.test_abandono_libera_vaga_e_resposta_atrasada_nao_excede_limite) ... skipped 
+'Configure um PostgreSQL de testes em TEST_DATABASE_URL.'
+test_cobertura_limite_concorrente_e_reenvio 
+(testes_postgres.TestesPostgres.test_cobertura_limite_concorrente_e_reenvio) ... skipped 'Configure um PostgreSQL de 
+testes em TEST_DATABASE_URL.'
+test_relatorio_cobertura_somente_leitura_inclui_zeros 
+(testes_postgres.TestesPostgres.test_relatorio_cobertura_somente_leitura_inclui_zeros) ... skipped 'Configure um 
+PostgreSQL de testes em TEST_DATABASE_URL.'
+test_catalogo_vazio_e_respostas_historicas 
+(testes_relatorio.TestesRelatorio.test_catalogo_vazio_e_respostas_historicas) ... ok
+test_consulta_inclui_catalogo_e_nao_le_dados_pessoais 
+(testes_relatorio.TestesRelatorio.test_consulta_inclui_catalogo_e_nao_le_dados_pessoais) ... ok
+test_erros_nao_expoem_credenciais_ou_traceback 
+(testes_relatorio.TestesRelatorio.test_erros_nao_expoem_credenciais_ou_traceback) ... ok
+test_faixas_zero_respostas_e_totais_fecham 
+(testes_relatorio.TestesRelatorio.test_faixas_zero_respostas_e_totais_fecham) ... ok
+test_sem_configuracao_nao_abre_conexao (testes_relatorio.TestesRelatorio.test_sem_configuracao_nao_abre_conexao) ... ok
+test_falha_api_preserva_categorias_trecho_e_reserva 
+(testes_tela.TestesTela.test_falha_api_preserva_categorias_trecho_e_reserva) ... 2026-11-10 12:09:01.396 Thread 
+'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-11-10 12:09:01.396 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.396 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.396 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.396 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.397 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+ok
+test_guia_oito_categorias_e_texto_mascarado (testes_tela.TestesTela.test_guia_oito_categorias_e_texto_mascarado) ... 
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.540 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+ok
+test_pular_nao_envia_anotacao_e_informa_registro_visto 
+(testes_tela.TestesTela.test_pular_nao_envia_anotacao_e_informa_registro_visto) ... 2026-11-10 12:09:01.659 Thread 
+'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-11-10 12:09:01.659 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.659 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.659 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.659 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+2026-11-10 12:09:01.659 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in 
+bare mode.
+ok
+
+----------------------------------------------------------------------
+Ran 50 tests in 1.859s
+
+OK (skipped=3)

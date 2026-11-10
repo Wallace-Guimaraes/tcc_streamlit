@@ -85,6 +85,7 @@ class TestesAnotacao(unittest.TestCase):
         # Uma base pequena exercita o formulário sem rede nem respostas reais.
         import banco
         with patch.object(banco, "BANCO", self.banco), \
+             patch('streamlit.context', ip_address=None), \
              patch("banco.salvar_anotacao", side_effect=lambda *args, **kwargs: salvar_anotacao(*args, **kwargs, caminho=self.banco)), \
              patch("cliente_api.sortear_pela_api", side_effect=[
                  {"registro": dict(self.registro, reserva_id="00000000-0000-4000-8000-000000000001"), "concluido": False},
@@ -103,14 +104,18 @@ class TestesAnotacao(unittest.TestCase):
             self.assertFalse(tela.exception)
             self.assertEqual(len(tela.checkbox), 9)
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
-            tela.checkbox[0].check().run()
+            # Campos de st.form são enviados juntos no submit. Um run isolado
+            # descarta alterações ainda não submetidas no AppTest atual.
+            tela.checkbox[0].check()
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
             next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
             self.assertTrue(tela.error)
+            self.assertTrue(tela.checkbox[0].value, 'Categoria após envio inválido')
             self.assertFalse(self.banco.exists())
             tela.text_area[1].input("Confirme hoje.")
             next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
             self.assertFalse(tela.exception)
+            self.assertFalse(tela.error, [erro.value for erro in tela.error])
             with closing(sqlite3.connect(self.banco)) as conexao:
                 self.assertEqual(conexao.execute("SELECT COUNT(*) FROM anotacoes").fetchone()[0], 1)
 

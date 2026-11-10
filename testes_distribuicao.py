@@ -39,6 +39,16 @@ class TestesDistribuicao(unittest.TestCase):
         with self.assertRaises(RegistroIndisponivel):
             conferir_vaga(self.conexao([None, None]), "reserva", "sessao", "GBR-000001")
 
+    def test_pular_libera_reserva_antes_de_sortear_sem_gravar_voto(self):
+        conexao = self.conexao([('reserva-1', 'GBR-000001', True, 0, False), ('GBR-000002',)])
+        resultado = reservar_registro(conexao, 'sessao-1', {'GBR-000001'})
+        self.assertEqual(resultado['id_registro'], 'GBR-000002')
+        comandos = [chamada.args[0] for chamada in conexao.execute.call_args_list]
+        self.assertIn('DELETE FROM reservas_coleta WHERE sessao_id=%s', comandos)
+        self.assertFalse(any('INSERT INTO anotacoes' in comando for comando in comandos))
+        self.assertLess(next(i for i, comando in enumerate(comandos) if 'DELETE' in comando),
+                        next(i for i, comando in enumerate(comandos) if 'WITH respostas' in comando))
+
 
 if __name__ == "__main__":
     unittest.main()

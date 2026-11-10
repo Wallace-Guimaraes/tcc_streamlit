@@ -123,6 +123,28 @@ if registro is None:
     st.stop()
 
 registro = dict(registro, texto=anonimizar_texto(registro["texto"]))
+with st.expander("Como realizar a anotação", expanded=False):
+    st.markdown("""
+Leia o registro completo e marque somente as estratégias sustentadas pelo texto.
+Você pode selecionar mais de uma categoria e deve copiar um ou mais trechos que justifiquem as marcações, uma passagem por linha.
+Escolha **Nenhuma das categorias** apenas quando nenhuma das oito for identificada; se não conseguir avaliar, use **Pular texto**.
+
+**Nenhuma das categorias** não significa que o registro não é fraude. **Pular texto** não grava resposta.
+Os exemplos abaixo são fictícios e não representam respostas corretas universais.
+
+| Categoria | Indício ilustrativo | Atenção à interpretação |
+|---|---|---|
+| Urgência | “Confirme os dados ainda hoje.” | Um prazo informativo não é, sozinho, pressão persuasiva. |
+| Medo | “Sua conta poderá ser bloqueada.” | Procure a exploração do risco para induzir uma ação. |
+| Ameaça | “Se não pagar, divulgaremos suas informações.” | Deve haver anúncio de dano ou punição para coagir. |
+| Falsa autoridade | “O autor fingiu ser atendente do banco.” | A suposta autoridade deve ser usada para persuadir; citar uma instituição não basta. |
+| Promessa de vantagem | “Pague a taxa e receba o prêmio.” | A vantagem precisa funcionar como incentivo à ação. |
+| Escassez | “Restam apenas duas vagas disponíveis.” | Diferencie limitação de oferta de urgência temporal. |
+| Confiança | “Veja os comprovantes que garantem a operação.” | Verifique a tentativa de construir credibilidade. |
+| Vínculo emocional | “Sou seu filho; preciso que me ajude.” | O vínculo precisa ser usado como recurso persuasivo. |
+
+Uma mesma passagem pode sustentar mais de uma categoria, conforme o contexto.
+""")
 coluna_texto, coluna_resposta = st.columns([1.15, 1], gap="medium")
 with coluna_texto:
     st.caption(f"{registro['base_origem']} · {registro['id_registro']}")

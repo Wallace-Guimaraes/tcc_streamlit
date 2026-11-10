@@ -64,7 +64,7 @@ Ao abrir `https://SEU-DOMINIO-DA-API/saude`, a resposta esperada é:
 
 Esse caminho verifica a conexão com o PostgreSQL e não mostra as anotações. O envio usa `POST /anotacoes` com a chave no cabeçalho `X-API-Key`. Não há endpoint público que liste os dados dos participantes.
 
-Na primeira anotação, a API carrega as versões das três fontes declaradas em `dados.py`. Como as bases não vão para o Git, o servidor precisa de acesso aos endereços públicos para baixá-las. A aplicação confere os hashes antes de usá-las.
+Na inicialização, a API carrega as versões das três fontes declaradas em `dados.py`. Como as bases não vão para o Git, o servidor precisa de acesso aos endereços públicos para baixá-las. A aplicação confere os hashes antes de usá-las.
 
 ## 4. Conectar o Streamlit
 
@@ -91,7 +91,7 @@ Se a API estiver indisponível, a resposta continua na tela e não é gravada em
 
 ## 5. Conferir uma anotação
 
-Abra a tela, informe nome e idade e salve uma anotação. Na consulta ao PostgreSQL, confira a contagem:
+Em homologação, abra a tela, informe nome completo e e-mail fictícios, aceite o TCLE de teste e salve uma anotação. Na consulta ao PostgreSQL de homologação, confira a contagem:
 
 ```sql
 SELECT COUNT(*) FROM anotacoes;
@@ -109,6 +109,16 @@ ORDER BY respostas DESC;
 Cada linha é um voto individual. Participantes de sessões distintas podem avaliar o mesmo relato. A aplicação não calcula consenso automaticamente. Os dados antigos de um SQLite, se existirem, não são migrados automaticamente para PostgreSQL.
 
 Configure os backups do banco pela hospedagem. Um volume conserva os dados entre reinícios, mas não substitui backup. A exportação e a administração ficam no acesso restrito ao PostgreSQL, não em uma rota aberta da aplicação.
+
+## Publicar as melhorias de novembro de 2026
+
+Atualize a tela com `app.py` e publique `anonimizacao.py` tanto no Streamlit quanto na API. A correção dos e-mails e nomes precisa estar no backend para proteger a saída do sorteio e as novas evidências. Reinicie os serviços e inicie uma nova sessão para a conferência; registros já carregados em sessões antigas podem conservar o texto recebido antes da atualização. As respostas históricas não são reescritas.
+
+Inclua `relatorio_coleta.py` na publicação da API; o Dockerfile já copia o script. Ele é executado manualmente no terminal privado do serviço com `python relatorio_coleta.py`, usando a `DATABASE_URL` do ambiente. No Compose local, use `docker compose exec api python relatorio_coleta.py`. Veja os indicadores e limites no README. O script não cria tabelas nem uma rota administrativa.
+
+Essas melhorias não exigem novas dependências de produção ou alterações de esquema, TCLE, categorias, contratos HTTP, hashes, distribuição e reservas. Antes de publicar, execute a suíte descrita no README. Use um PostgreSQL exclusivo de testes em `TEST_DATABASE_URL` para a integração de concorrência e cobertura; nunca a conexão de produção.
+
+Em homologação, confira o guia recolhido e expandido em computador e celular, a leitura de um exemplo fictício com máscaras, o envio, a ação de pular e a preservação da resposta quando a API falha. A revisão visual em navegador e a integração real não foram executadas nesta entrega; consulte [RELATORIO_MELHORIAS.md](RELATORIO_MELHORIAS.md).
 
 ## Executar os três serviços no computador
 

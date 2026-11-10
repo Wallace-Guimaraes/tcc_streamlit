@@ -120,6 +120,29 @@ class TestesPostgres(unittest.TestCase):
             self.api.receber_anotacao(self.anotacao(antiga, antiga_sessao))
         self.assertEqual(erro.exception.status_code, 409)
 
+    def test_relatorio_cobertura_somente_leitura_inclui_zeros(self):
+        from relatorio_coleta import consultar_cobertura
+
+        # Preserva a conexão original antes do patch no módulo psycopg compartilhado.
+        conectar_original = self.psycopg.connect
+
+        def conectar_relatorio(endereco, **opcoes):
+            return conectar_original(endereco, options=f'-csearch_path={self.schema}', **opcoes)
+
+        with patch('relatorio_coleta.psycopg.connect', side_effect=conectar_relatorio):
+            vazio = consultar_cobertura(self.endereco)
+        self.assertEqual(vazio['total']['registros'], 3)
+        self.assertEqual(vazio['total']['sem_respostas'], 3)
+        self.assertEqual(vazio['respostas_gravadas'], 0)
+        self.avaliar()
+        with patch('relatorio_coleta.psycopg.connect', side_effect=conectar_relatorio):
+            com_resposta = consultar_cobertura(self.endereco)
+        self.assertEqual(com_resposta['total']['sem_respostas'], 2)
+        self.assertEqual(com_resposta['total']['com_respostas'], 1)
+        self.assertEqual(com_resposta['respostas_gravadas'], 1)
+        with self.conectar_teste() as conexao:
+            self.assertEqual(conexao.execute('SELECT COUNT(*) FROM anotacoes').fetchone()[0], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

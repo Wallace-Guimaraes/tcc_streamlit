@@ -59,6 +59,36 @@ class TestesAPI(unittest.TestCase):
         self.assertEqual(self.enviar(dict(self.dados, categorias=[], trecho="", nenhuma=True)).status_code, 200)
         self.assertEqual(self.enviar(dict(self.dados, categorias=[], trecho="", nenhuma=False)).status_code, 422)
 
+    def test_validacoes_impedem_gravacao_antes_de_abrir_banco(self):
+        for alteracoes in ({'categorias': ['Urgência'], 'trecho': ''},
+                           {'categorias': ['Urgência', 'Medo'], 'trecho': ''},
+                           {'categorias': ['Urgência', 'Medo'], 'trecho': 'Inventado'},
+                           {'nenhuma': True}, {'id_registro': 'GBR-999999'},
+                           {'sha256_texto': '0' * 64}):
+            with self.subTest(alteracoes=alteracoes):
+                self.assertEqual(self.enviar(dict(self.dados, **alteracoes)).status_code, 422)
+        self.conexao.execute.assert_not_called()
+
+    def test_novos_padroes_mascaram_sorteio_e_evidencia(self):
+        original = 'ME CHAMO MARIA DA SILVA. Confirme em t.me/exemplo ou nome.com@exemplo.org hoje.'
+        tratado = 'ME CHAMO [PESSOA]. Confirme em [LINK] ou [EMAIL] hoje.'
+        self.registro['texto'] = original
+        self.registro['sha256_texto'] = hashlib.sha256(original.encode()).hexdigest()
+        reserva = {'id_registro': self.registro['id_registro'], 'reserva_id': self.dados['id']}
+        with patch.object(self.api, 'reservar_registro', return_value=reserva):
+            sorteado = self.cliente.post('/sorteio', json={'sessao_id': self.dados['sessao_id']},
+                                        headers={'X-API-Key': 'chave-de-teste'}).json()['registro']
+        self.assertEqual(sorteado['texto'], tratado)
+        self.assertEqual(sorteado['sha256_texto'], self.registro['sha256_texto'])
+        for trecho in (original, tratado, 'MARIA DA SILVA.'):
+            self.conexao.execute.reset_mock()
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             sha256_texto=self.registro['sha256_texto'])).status_code, 200)
+            parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
+                              if 'INSERT INTO anotacoes' in chamada.args[0])
+            for identificador in ('MARIA DA SILVA', 'nome.com@exemplo.org', 't.me/exemplo'):
+                self.assertNotIn(identificador, parametros[9])
+
     def test_reenvio_retorna_sem_criar_copia(self):
         self.conexao.execute.return_value.fetchone.return_value = None
         self.assertEqual(self.enviar().json(), {"criada": False})
