@@ -30,6 +30,13 @@ def preparar_catalogo(conexao, registros):
         cursor.executemany("""INSERT INTO registros_coleta (id_registro, base_origem, sha256_texto)
             VALUES (%s,%s,%s) ON CONFLICT (id_registro) DO NOTHING""",
             [(r["id_registro"], r["base_origem"], r["sha256_texto"]) for r in registros.values()])
+    ids_elegiveis = [r["id_registro"] for r in registros.values()]
+    conexao.execute("""DELETE FROM reservas_coleta v
+        USING registros_coleta r
+        WHERE v.id_registro=r.id_registro AND NOT (r.id_registro = ANY(%s::text[]))""",
+        (ids_elegiveis,))
+    conexao.execute("DELETE FROM registros_coleta WHERE NOT (id_registro = ANY(%s::text[]))",
+                     (ids_elegiveis,))
 
 
 def reservar_registro(conexao, sessao_id, vistos):

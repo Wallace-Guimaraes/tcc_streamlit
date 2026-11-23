@@ -43,9 +43,11 @@ Cada registro tem até dez respostas pela API. A distribuição e a gravação u
 
 A API mantém uma reserva de 30 minutos por sessão. Reabrir o formulário conserva a reserva válida. Ao salvar ou pular, a sessão libera sua vaga. Quando a reserva expira, deixa de contar na ocupação e outra pessoa pode usar a vaga. Uma resposta atrasada ainda pode ser aceita se sua reserva não foi trocada e houver capacidade livre; caso contrário, o sistema informa o conflito e conserva o formulário. O backend impede a mesma sessão de responder novamente ao mesmo registro.
 
-Todos os 7.412 registros são cadastrados na fila, inclusive os que ainda têm zero respostas. São usados todos os textos das fontes, inclusive os que não foram rotulados como fraude. O limite representa respostas por ID, não dez pessoas autenticadas nem dez famílias de textos distintas. Sessões diferentes podem pertencer à mesma pessoa, pois não há autenticação individual.
+Somente registros com rótulo original positivo de fraude entram na fila. No GolpeBR, são aceitos `cibercrime=S`; no FraudWhatsApp.Br e FraudTelegram.Br, `Golpe=1`. Registros negativos e sem rótulo ficam fora do sorteio. Nas versões usadas, são 3.343 registros elegíveis: 335 do GolpeBR, 84 do WhatsApp e 2.924 do Telegram. Os índices dos registros continuam baseados na posição original da linha, preservando a correspondência com a fonte. O limite representa respostas por ID, não dez pessoas autenticadas nem dez famílias de textos distintas. Sessões diferentes podem pertencer à mesma pessoa, pois não há autenticação individual.
 
-Cobertura depende de participação suficiente: uma avaliação por registro exige pelo menos 7.412 respostas salvas; a meta de dez por registro exige 74.120 no total. Pular ou abandonar textos não cria respostas artificiais. A coleta termina quando todos os registros têm pelo menos dez avaliações; falta de textos para uma sessão não é apresentada como conclusão global.
+Na atualização do catálogo PostgreSQL, as reservas de registros inelegíveis são removidas e esses registros deixam de participar da fila. As anotações já existentes permanecem armazenadas como histórico. Novas respostas só podem ser enviadas para registros elegíveis carregados pela versão atual das bases.
+
+Cobertura depende de participação suficiente: uma avaliação por registro elegível exige pelo menos 3.343 respostas salvas; a meta de dez por registro exige 33.430 no total. Pular ou abandonar textos não cria respostas artificiais. A coleta termina quando todos os registros elegíveis têm pelo menos dez avaliações; falta de textos para uma sessão não é apresentada como conclusão global.
 
 As oito estratégias são Urgência, Medo, Ameaça, Falsa autoridade, Promessa de vantagem, Escassez, Confiança e Vínculo emocional. É possível marcar várias ou escolher explicitamente `Nenhuma das categorias`. Essa opção representa ausência das oito estratégias, não dúvida, e não significa que o registro não é fraude. Para textos que não podem ser avaliados, use **Pular texto**; isso libera a reserva na próxima solicitação à API e não grava voto negativo. Se a API estiver indisponível, a liberação aguarda uma solicitação bem-sucedida ou a expiração da reserva.
 
@@ -88,7 +90,7 @@ armazenamento/     arquivos antigos do modo SQLite (fora do Git)
 
 Na primeira execução, as bases são baixadas dos endereços públicos declarados em `dados.py`. Os hashes SHA-256 conferem a versão usada no TCC. Se a fonte mudar, a aplicação interrompe o carregamento. Também é possível copiar `golpebr.csv`, `whatsapp.csv` e `telegram.csv` do projeto do TCC para `bases/`.
 
-As versões de referência contêm 557 registros do GolpeBR, 2.640 do WhatsApp e 4.215 do Telegram, totalizando 7.412. Como `bases/` não vai para o Git, um clone novo não contém esses CSVs. Será necessário copiar os arquivos ou permitir o download das versões conferidas. Os hashes de referência estão em `FONTES`, em `dados.py`; não foram recalculados ou substituídos nesta melhoria.
+As versões completas de referência contêm 557 registros do GolpeBR, 2.640 do WhatsApp e 4.215 do Telegram, totalizando 7.412. A aplicação carrega para anotação apenas os 3.343 registros que as fontes classificam como fraude: 335 do GolpeBR, 84 do WhatsApp e 2.924 do Telegram. Como `bases/` não vai para o Git, um clone novo exige copiar esses CSVs ou permitir o download das versões conferidas. Os hashes das fontes estão declarados em `FONTES`, em `dados.py`.
 
 ## Respostas coletadas
 
