@@ -12,7 +12,7 @@ CATEGORIAS = {
 }
 
 
-def validar_anotacao(texto, categorias, trecho, nenhuma=False, texto_original=None):
+def validar_anotacao(texto, categorias, trecho, nenhuma=False):
     if nenhuma and categorias:
         raise ValueError("Escolha as estratégias ou marque 'Nenhuma das categorias', sem combinar as duas opções.")
     if not categorias and not nenhuma:
@@ -24,9 +24,8 @@ def validar_anotacao(texto, categorias, trecho, nenhuma=False, texto_original=No
             return
         raise ValueError("Preencha o trecho que justifica sua resposta.")
     # Cada linha pode ser uma passagem diferente do mesmo texto.
-    textos = [texto] if texto_original is None else [texto, texto_original]
-    textos_normalizados = [" ".join(fonte.casefold().split()) for fonte in textos]
+    texto_normalizado = " ".join(texto.casefold().split())
     for passagem in trecho.splitlines():
-        if passagem.strip() and not any(" ".join(passagem.casefold().split()) in fonte for fonte in textos_normalizados):
+        if passagem.strip() and " ".join(passagem.casefold().split()) not in texto_normalizado:
             raise ValueError("Copie os trechos do texto apresentado, um por linha, sem acrescentar títulos ou comentários.")
 

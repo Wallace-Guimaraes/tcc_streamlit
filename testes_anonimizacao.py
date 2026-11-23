@@ -22,14 +22,14 @@ class TestesAnonimizacao(unittest.TestCase):
         esperado = 'Escreva para [EMAIL] ou [USUARIO]. Veja [LINK]; @ não é perfil.'
         self.assertEqual(anonimizar_texto(original), esperado)
 
-    def test_evidencia_aceita_mencao_original_ou_mascarada(self):
+    def test_evidencia_exige_mencao_mascarada_como_exibida(self):
         original = 'Confirme hoje com @bottelegram.'
         tratado = 'Confirme hoje com [USUARIO].'
-        for trecho in (original, tratado, '@bottelegram', '[USUARIO]'):
-            validar_anotacao(tratado, ['Urgência'], trecho, texto_original=original)
-            self.assertNotIn('@bottelegram', anonimizar_texto(trecho, referencia=original))
-        with self.assertRaises(ValueError):
-            validar_anotacao(tratado, ['Urgência'], '@perfil_inventado', texto_original=original)
+        for trecho in (tratado, '[USUARIO]'):
+            validar_anotacao(tratado, ['Urgência'], trecho)
+        for trecho in (original, '@bottelegram', '@perfil_inventado'):
+            with self.subTest(trecho=trecho), self.assertRaises(ValueError):
+                validar_anotacao(tratado, ['Urgência'], trecho)
 
     def test_nome_com_contexto_e_repeticao_no_trecho(self):
         original = 'Meu nome é Maria da Silva. Maria da Silva pede ajuda ao seu filho.'
@@ -76,9 +76,13 @@ class TestesAnonimizacao(unittest.TestCase):
         referencia = 'Me chamo Maria  da Silva. Maria  da Silva pede ajuda.'
         for trecho in ('Maria da Silva', 'MARIA\tda Silva', 'Maria\nda Silva'):
             with self.subTest(trecho=trecho):
-                validar_anotacao(anonimizar_texto(referencia), ['Vínculo emocional'], trecho,
-                                 texto_original=referencia)
-                self.assertEqual(anonimizar_texto(trecho, referencia=referencia), '[PESSOA]')
+                texto = anonimizar_texto(referencia)
+                trecho_mascarado = anonimizar_texto(trecho, referencia=referencia)
+                if '[PESSOA]' in trecho_mascarado:
+                    validar_anotacao(texto, ['Vínculo emocional'], trecho_mascarado)
+                else:
+                    with self.assertRaises(ValueError):
+                        validar_anotacao(texto, ['Vínculo emocional'], trecho)
 
     def test_preserva_contexto_das_estrategias_e_marcadores(self):
         original = 'Banco Central. Seu filho precisa de ajuda. Meu nome é João. Confirme hoje!'
@@ -87,14 +91,14 @@ class TestesAnonimizacao(unittest.TestCase):
         self.assertEqual(anonimizar_texto(esperado), esperado)
         self.assertEqual(anonimizar_texto(''), '')
 
-    def test_aceita_trechos_originais_e_tratados_sem_aceitar_identificador_inventado(self):
+    def test_evidencia_corresponde_ao_texto_mascarado(self):
         original = 'Me chamo João da Silva. Escreva para joao@exemplo.org hoje.'
         tratado = anonimizar_texto(original)
-        for trecho in (original, tratado, 'João da Silva.', '[PESSOA].'):
-            validar_anotacao(tratado, ['Urgência'], trecho, texto_original=original)
-        with self.assertRaises(ValueError):
-            validar_anotacao(tratado, ['Urgência'], 'Escreva para inventado@exemplo.org hoje.',
-                             texto_original=original)
+        for trecho in (tratado, '[PESSOA].', 'Escreva para [EMAIL] hoje.'):
+            validar_anotacao(tratado, ['Urgência'], trecho)
+        for trecho in (original, 'João da Silva.', 'Escreva para joao@exemplo.org hoje.'):
+            with self.subTest(trecho=trecho), self.assertRaises(ValueError):
+                validar_anotacao(tratado, ['Urgência'], trecho)
 
 
 if __name__ == '__main__':

@@ -141,8 +141,7 @@ def receber_anotacao(anotacao: Anotacao):
     try:
         email = validar_email(anotacao.email)
         texto = anonimizar_texto(registro["texto"])
-        validar_anotacao(texto, anotacao.categorias, anotacao.trecho, anotacao.nenhuma,
-                         texto_original=registro["texto"])
+        validar_anotacao(texto, anotacao.categorias, anotacao.trecho, anotacao.nenhuma)
         trecho = anonimizar_texto(anotacao.trecho, referencia=registro["texto"])
     except ValueError as erro:
         raise HTTPException(422, str(erro)) from None

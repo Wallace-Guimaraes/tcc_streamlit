@@ -34,8 +34,7 @@ def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categor
     if not nome or len(nome) > 150:
         raise ValueError("Informe seu nome, com até 150 caracteres.")
     email = validar_email(email)
-    validar_anotacao(anonimizar_texto(registro["texto"]), categorias, trecho, nenhuma,
-                     texto_original=registro["texto"])
+    validar_anotacao(anonimizar_texto(registro["texto"]), categorias, trecho, nenhuma)
     trecho = anonimizar_texto(trecho, referencia=registro["texto"])
     endereco_api = os.environ.get("URL_API", "").strip()
     if caminho is None:

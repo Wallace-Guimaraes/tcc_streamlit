@@ -82,7 +82,7 @@ class TestesAPI(unittest.TestCase):
                                         headers={'X-API-Key': 'chave-de-teste'}).json()['registro']
         self.assertEqual(sorteado['texto'], tratado)
         self.assertEqual(sorteado['sha256_texto'], self.registro['sha256_texto'])
-        for trecho in (original, tratado, 'MARIA DA SILVA.'):
+        for trecho in (tratado, '[PESSOA].'):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 200)
@@ -90,6 +90,11 @@ class TestesAPI(unittest.TestCase):
                               if 'INSERT INTO anotacoes' in chamada.args[0])
             for identificador in ('MARIA DA SILVA', 'nome.com@exemplo.org', 't.me/exemplo'):
                 self.assertNotIn(identificador, parametros[9])
+        for trecho in (original, 'MARIA DA SILVA.', 'Confirme em t.me/exemplo.'):
+            self.conexao.execute.reset_mock()
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             sha256_texto=self.registro['sha256_texto'])).status_code, 422)
+            self.conexao.execute.assert_not_called()
 
     def test_mencao_mascarada_no_sorteio_e_na_gravacao_da_evidencia(self):
         original = 'Confirme hoje com @bottelegram ou contato@exemplo.org.'
@@ -103,7 +108,7 @@ class TestesAPI(unittest.TestCase):
         self.assertEqual(sorteado['texto'], tratado)
         self.assertEqual(sorteado['sha256_texto'], self.registro['sha256_texto'])
         self.assertEqual(self.registro['texto'], original)
-        for trecho, esperado in ((original, tratado), (tratado, tratado), ('@bottelegram', '[USUARIO]')):
+        for trecho, esperado in ((tratado, tratado), ('[USUARIO]', '[USUARIO]')):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 200)
@@ -111,6 +116,11 @@ class TestesAPI(unittest.TestCase):
                               if 'INSERT INTO anotacoes' in chamada.args[0])
             self.assertEqual(parametros[9], esperado)
             self.assertEqual(parametros[2:4], ('Pessoa de teste', 'pessoa@example.org'))
+        for trecho in (original, '@bottelegram'):
+            self.conexao.execute.reset_mock()
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             sha256_texto=self.registro['sha256_texto'])).status_code, 422)
+            self.conexao.execute.assert_not_called()
 
     def test_reenvio_retorna_sem_criar_copia(self):
         self.conexao.execute.return_value.fetchone.return_value = None
