@@ -64,7 +64,9 @@ class TestesAPI(unittest.TestCase):
                            {'categorias': ['Urgência', 'Medo'], 'trecho': ''},
                            {'categorias': ['Urgência', 'Medo'], 'trecho': 'Inventado'},
                            {'nenhuma': True}, {'id_registro': 'GBR-999999'},
-                           {'sha256_texto': '0' * 64}):
+                           {'sha256_texto': '0' * 64},
+                           {'id_registro': 'GBR-000001'},
+                           {'id_registro': 'FTG-000001'}):
             with self.subTest(alteracoes=alteracoes):
                 self.assertEqual(self.enviar(dict(self.dados, **alteracoes)).status_code, 422)
         self.conexao.execute.assert_not_called()

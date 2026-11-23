@@ -14,7 +14,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from categorias import validar_anotacao
 from anonimizacao import anonimizar_texto
-from dados import carregar_bases
+from dados import carregar_bases, validar_registro_canonico
 from consentimento import HASH_TCLE, VERSAO_TCLE, validar_email
 from distribuicao import (RegistroIndisponivel, bloquear_coleta, conferir_vaga,
                          liberar_reserva, preparar_catalogo, reservar_registro)
@@ -130,10 +130,11 @@ def receber_anotacao(anotacao: Anotacao):
     if anotacao.consentimento_versao != VERSAO_TCLE or anotacao.consentimento_hash != HASH_TCLE:
         raise HTTPException(422, "O termo foi atualizado. Leia e aceite a versão atual antes de participar.")
     try:
-        registro = registros_por_id().get(anotacao.id_registro)
+        registro = validar_registro_canonico(anotacao.id_registro, anotacao.sha256_texto,
+                                             registros_por_id())
     except (OSError, ValueError):
         raise HTTPException(503, "As bases de origem não estão disponíveis.") from None
-    if registro is None or registro["sha256_texto"] != anotacao.sha256_texto:
+    if registro is None:
         raise HTTPException(422, "Registro ou versão do texto não reconhecidos.")
     if not anotacao.nome.strip():
         raise HTTPException(422, "Informe o nome do anotador.")

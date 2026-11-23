@@ -3,6 +3,7 @@ import csv
 import hashlib
 import io
 import os
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -20,6 +21,24 @@ FONTES = (
      "https://raw.githubusercontent.com/jmmfilho/sec-fraudimabr/desenv/data/dataset_rotulado_telegram.csv",
      "0851a5b0a71e560b0fdd66aae956ac69be71094753281838507e3a91ff538e0b"),
 )
+PADRAO_ID_REGISTRO = re.compile(r"^(GBR|FWA|FTG)-\d{6}$")
+
+
+def validar_registro_canonico(id_registro, sha256_texto, registros):
+    """Retorna o registro somente quando ID e hash identificam o mesmo texto."""
+    if not isinstance(id_registro, str) or not PADRAO_ID_REGISTRO.fullmatch(id_registro):
+        return None
+    if not isinstance(sha256_texto, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256_texto):
+        return None
+    registro = registros.get(id_registro)
+    if registro is None:
+        return None
+    if registro["id_registro"] != id_registro or registro["sha256_texto"] != sha256_texto:
+        return None
+    prefixo_fonte = {"GOLPEBR": "GBR", "FRAUDWHATSAPP_BR": "FWA", "FRAUDTELEGRAM_BR": "FTG"}
+    if prefixo_fonte.get(registro["base_origem"]) != id_registro[:3]:
+        return None
+    return registro
 
 
 def carregar_bases(pasta=PASTA_BASES):

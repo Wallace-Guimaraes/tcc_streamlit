@@ -28,7 +28,8 @@ def preparar_catalogo(conexao, registros):
     conexao.execute("CREATE INDEX IF NOT EXISTS reservas_por_registro ON reservas_coleta (id_registro, expira_em)")
     with conexao.cursor() as cursor:
         cursor.executemany("""INSERT INTO registros_coleta (id_registro, base_origem, sha256_texto)
-            VALUES (%s,%s,%s) ON CONFLICT (id_registro) DO NOTHING""",
+            VALUES (%s,%s,%s) ON CONFLICT (id_registro) DO UPDATE SET
+            base_origem=EXCLUDED.base_origem, sha256_texto=EXCLUDED.sha256_texto""",
             [(r["id_registro"], r["base_origem"], r["sha256_texto"]) for r in registros.values()])
     ids_elegiveis = [r["id_registro"] for r in registros.values()]
     conexao.execute("""DELETE FROM reservas_coleta v
