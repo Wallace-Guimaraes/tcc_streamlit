@@ -25,8 +25,10 @@ class TestesAnotacao(unittest.TestCase):
                          "texto": texto, "sha256_texto": hashlib.sha256(texto.encode()).hexdigest()}
 
     def salvar(self, categorias=None, trecho="Confirme hoje.", nenhuma=False, nome="Pessoa de teste"):
+        categorias = ["Urgência"] if categorias is None else categorias
+        evidencias = {categoria: trecho for categoria in categorias} if not isinstance(trecho, dict) else trecho
         return salvar_anotacao("resposta-1", "sessao-1", nome, "pessoa@example.org", "127.0.0.1", self.registro,
-                               ["Urgência"] if categorias is None else categorias, trecho, nenhuma, self.banco)
+                               categorias, evidencias, nenhuma, self.banco)
 
     def test_trecho_obrigatorio_e_literal(self):
         for trecho in ("", "Trecho inventado"):
@@ -39,7 +41,7 @@ class TestesAnotacao(unittest.TestCase):
             self.salvar(categorias=[])
         with self.assertRaises(ValueError):
             self.salvar(nenhuma=True)
-        self.assertTrue(self.salvar(categorias=[], nenhuma=True, trecho=""))
+        self.assertTrue(self.salvar(categorias=[], nenhuma=True, trecho={}))
         with closing(sqlite3.connect(self.banco)) as conexao:
             categorias, trecho = conexao.execute("SELECT estrategias_identificadas, evidencia_textual FROM anotacoes").fetchone()
             self.assertEqual(json.loads(categorias), [])
@@ -76,7 +78,8 @@ class TestesAnotacao(unittest.TestCase):
 
     def test_varias_passagens_e_categorias(self):
         validar_anotacao(self.registro["texto"], ["Urgência", "Promessa de vantagem"],
-                         "Confirme hoje.\nVocê receberá um prêmio.")
+                         {"Urgência": "Confirme hoje.",
+                          "Promessa de vantagem": "Você receberá um prêmio."})
 
     @unittest.skipUnless(importlib.util.find_spec("streamlit"), "Instale Streamlit para testar a tela.")
     def test_formulario_preserva_texto_e_grava(self):
@@ -104,15 +107,10 @@ class TestesAnotacao(unittest.TestCase):
             self.assertFalse(tela.exception)
             self.assertEqual(len(tela.checkbox), 9)
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
-            # Campos de st.form são enviados juntos no submit. Um run isolado
-            # descarta alterações ainda não submetidas no AppTest atual.
-            tela.checkbox[0].check()
+            tela.checkbox[0].check().run()
             self.assertEqual(tela.text_area[0].value, self.registro["texto"])
-            next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
-            self.assertTrue(tela.error)
-            self.assertTrue(tela.checkbox[0].value, 'Categoria após envio inválido')
-            self.assertFalse(self.banco.exists())
-            tela.text_area[1].input("Confirme hoje.")
+            evidencia = next(campo for campo in tela.text_area if campo.label == "Urgência: insira o texto aqui")
+            evidencia.input("Confirme hoje.").run()
             next(botao for botao in tela.button if botao.label == "Salvar e próximo").click().run()
             self.assertFalse(tela.exception)
             self.assertFalse(tela.error, [erro.value for erro in tela.error])

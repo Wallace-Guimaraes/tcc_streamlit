@@ -153,25 +153,32 @@ with coluna_texto:
     pular = st.button("Pular texto", help="Use quando não conseguir avaliar. Não grava uma resposta.")
 
 with coluna_resposta:
-    with st.form(f"anotacao_{st.session_state.anotacao_id}"):
-        st.markdown("**Categorias**")
-        colunas_categorias = st.columns(2)
-        categorias = []
-        for indice, (categoria, explicacao) in enumerate(CATEGORIAS.items()):
-            with colunas_categorias[indice % 2]:
-                if st.checkbox(categoria, help=explicacao):
-                    categorias.append(categoria)
-        nenhuma = st.checkbox("Nenhuma das categorias")
-        trecho = st.text_area("Trecho de justificativa", height=110,
-                              placeholder="Opcional para “Nenhuma das categorias”",
-                              help="Obrigatório ao marcar estratégias. Copie uma passagem por linha. Se escolher nenhuma das categorias, pode deixar em branco.")
-        salvar = st.form_submit_button("Salvar e próximo", type="primary", use_container_width=True)
+    st.markdown("**Categorias**")
+    colunas_categorias = st.columns(2)
+    categorias = []
+    nenhuma_marcada = st.session_state.get(f"nenhuma_{st.session_state.anotacao_id}", False)
+    for indice, (categoria, explicacao) in enumerate(CATEGORIAS.items()):
+        with colunas_categorias[indice % 2]:
+            if st.checkbox(categoria, help=explicacao, disabled=nenhuma_marcada,
+                           key=f"categoria_{st.session_state.anotacao_id}_{indice}"):
+                categorias.append(categoria)
+    nenhuma = st.checkbox("Nenhuma das categorias", disabled=bool(categorias),
+                          key=f"nenhuma_{st.session_state.anotacao_id}")
+    evidencias = {}
+    for categoria in categorias:
+        indice = list(CATEGORIAS).index(categoria)
+        evidencias[categoria] = st.text_area(
+            f"{categoria}: insira o texto aqui", height=72,
+            placeholder="Copie a passagem do relato que justifica esta estratégia.",
+            key=f"evidencia_{st.session_state.anotacao_id}_{indice}")
+    salvar = st.button("Salvar e próximo", type="primary", use_container_width=True,
+                       key=f"salvar_{st.session_state.anotacao_id}")
 
 if salvar:
     try:
         gravou = salvar_anotacao(st.session_state.anotacao_id, st.session_state.sessao_id,
                                  participante["nome"], participante["email"], st.context.ip_address,
-                                 registro, categorias, trecho, nenhuma, consentimento=st.session_state.consentimento)
+                                 registro, categorias, evidencias, nenhuma, consentimento=st.session_state.consentimento)
     except (ValueError, sqlite3.Error, OSError) as erro:
         st.error(f"A resposta não foi salva: {erro}")
     else:

@@ -26,16 +26,23 @@ def conectar(caminho=None):
         estrategias_identificadas TEXT NOT NULL, evidencia_textual TEXT NOT NULL,
         UNIQUE (sessao_id, id_registro)
     )""")
+    colunas = {linha[1] for linha in conexao.execute("PRAGMA table_info(anotacoes)")}
+    if "evidencias_por_categoria" not in colunas:
+        conexao.execute("ALTER TABLE anotacoes ADD COLUMN evidencias_por_categoria TEXT")
     return conexao
 
 
-def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categorias, trecho, nenhuma=False, caminho=None, consentimento=None):
+def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categorias, evidencias, nenhuma=False, caminho=None, consentimento=None):
     nome = nome.strip()
     if not nome or len(nome) > 150:
         raise ValueError("Informe seu nome, com até 150 caracteres.")
     email = validar_email(email)
-    validar_anotacao(anonimizar_texto(registro["texto"]), categorias, trecho, nenhuma)
-    trecho = anonimizar_texto(trecho, referencia=registro["texto"])
+    validar_anotacao(anonimizar_texto(registro["texto"]), categorias, evidencias, nenhuma)
+    evidencias = {categoria: anonimizar_texto(trecho, referencia=registro["texto"])
+                  for categoria, trecho in evidencias.items()} if isinstance(evidencias, dict) else evidencias
+    trecho = "\n".join(passagem
+                       for evidencia in evidencias.values()
+                       for passagem in evidencia.splitlines()) if isinstance(evidencias, dict) else evidencias
     endereco_api = os.environ.get("URL_API", "").strip()
     if caminho is None:
         if not endereco_api:
@@ -43,13 +50,17 @@ def salvar_anotacao(identificador, sessao_id, nome, email, ip, registro, categor
         from cliente_api import enviar_anotacao
 
         return enviar_anotacao(endereco_api, os.environ.get("CHAVE_API", ""), identificador,
-                               sessao_id, nome, email, ip, registro, categorias, trecho, nenhuma, consentimento)
+                               sessao_id, nome, email, ip, registro, categorias, evidencias, nenhuma, consentimento)
     valores = (identificador, sessao_id, nome, email, ip,
                datetime.now(timezone.utc).isoformat(timespec="seconds"), registro["id_registro"],
                registro["base_origem"], registro["sha256_texto"],
-               json.dumps(list(dict.fromkeys(categorias)), ensure_ascii=False), trecho.strip())
+               json.dumps(list(dict.fromkeys(categorias)), ensure_ascii=False), trecho.strip(),
+               json.dumps(evidencias, ensure_ascii=False) if isinstance(evidencias, dict) else None)
     with closing(conectar(caminho)) as conexao, conexao:
-        cursor = conexao.execute("INSERT INTO anotacoes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", valores)
+        cursor = conexao.execute("""INSERT INTO anotacoes
+            (id, sessao_id, nome, email, ip, data_hora_utc, id_registro, base_origem,
+             sha256_texto, estrategias_identificadas, evidencia_textual, evidencias_por_categoria)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""", valores)
         return cursor.rowcount == 1
 
 

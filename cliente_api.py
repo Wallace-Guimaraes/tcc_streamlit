@@ -40,10 +40,15 @@ def sortear_pela_api(sessao_id, vistos):
     return conteudo
 
 
-def enviar_anotacao(endereco, chave, identificador, sessao_id, nome, email, ip, registro, categorias, trecho, nenhuma, consentimento=None):
+def enviar_anotacao(endereco, chave, identificador, sessao_id, nome, email, ip, registro, categorias, evidencias, nenhuma, consentimento=None):
+    trecho = "\n".join(passagem
+                       for evidencia in evidencias.values()
+                       for passagem in evidencia.splitlines()) if isinstance(evidencias, dict) else evidencias
     dados = {"id": identificador, "sessao_id": sessao_id, "nome": nome, "email": email, "ip": ip,
              "id_registro": registro["id_registro"], "sha256_texto": registro["sha256_texto"],
-             "categorias": categorias, "trecho": trecho, "nenhuma": nenhuma}
+             "categorias": categorias, "trecho": trecho,
+             "evidencias_por_categoria": evidencias if isinstance(evidencias, dict) else {},
+             "nenhuma": nenhuma}
     dados.update(consentimento or {})
     conteudo = chamar_api(endereco, chave, "/anotacoes", dados)
     if not isinstance(conteudo.get("criada"), bool):

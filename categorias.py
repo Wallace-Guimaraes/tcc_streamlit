@@ -12,20 +12,30 @@ CATEGORIAS = {
 }
 
 
-def validar_anotacao(texto, categorias, trecho, nenhuma=False):
+def validar_anotacao(texto, categorias, evidencias, nenhuma=False):
+    if isinstance(evidencias, str):
+        evidencias = {categorias[0]: evidencias} if len(categorias) == 1 else {}
+    if not isinstance(evidencias, dict):
+        raise ValueError("Associe uma evidência a cada categoria selecionada.")
     if nenhuma and categorias:
         raise ValueError("Escolha as estratégias ou marque 'Nenhuma das categorias', sem combinar as duas opções.")
     if not categorias and not nenhuma:
         raise ValueError("Marque ao menos uma estratégia ou 'Nenhuma das categorias'.")
     if set(categorias) - CATEGORIAS.keys():
         raise ValueError("Há uma categoria que não pertence ao protocolo.")
-    if not trecho.strip():
-        if nenhuma:
-            return
-        raise ValueError("Preencha o trecho que justifica sua resposta.")
-    # Cada linha pode ser uma passagem diferente do mesmo texto.
+    if nenhuma:
+        if evidencias:
+            raise ValueError("Não informe evidências ao marcar 'Nenhuma das categorias'.")
+        return
+    if set(evidencias) != set(categorias):
+        raise ValueError("Preencha uma evidência para cada categoria selecionada.")
+    if any(not isinstance(trecho, str) or len(trecho) > 100000 for trecho in evidencias.values()):
+        raise ValueError("Cada evidência deve ter até 100.000 caracteres.")
     texto_normalizado = " ".join(texto.casefold().split())
-    for passagem in trecho.splitlines():
-        if passagem.strip() and " ".join(passagem.casefold().split()) not in texto_normalizado:
-            raise ValueError("Copie os trechos do texto apresentado, um por linha, sem acrescentar títulos ou comentários.")
+    for categoria, trecho in evidencias.items():
+        if not isinstance(trecho, str) or not trecho.strip():
+            raise ValueError(f"Preencha a evidência da categoria {categoria}.")
+        for passagem in trecho.splitlines():
+            if passagem.strip() and " ".join(passagem.casefold().split()) not in texto_normalizado:
+                raise ValueError(f"Copie as evidências de {categoria} do texto apresentado, uma passagem por linha.")
 

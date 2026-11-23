@@ -60,7 +60,8 @@ async def iniciar(aplicacao):
             ADD COLUMN IF NOT EXISTS consentimento_versao TEXT,
             ADD COLUMN IF NOT EXISTS consentimento_hash TEXT,
             ADD COLUMN IF NOT EXISTS consentimento_em TIMESTAMPTZ,
-            ADD COLUMN IF NOT EXISTS consentimento BOOLEAN""")
+            ADD COLUMN IF NOT EXISTS consentimento BOOLEAN,
+            ADD COLUMN IF NOT EXISTS evidencias_por_categoria JSONB""")
         # Mantém idades antigas, sem exigir nem preencher idade nas novas respostas.
         conexao.execute("ALTER TABLE anotacoes ALTER COLUMN idade DROP NOT NULL")
         preparar_catalogo(conexao, registros)
@@ -81,7 +82,9 @@ class Anotacao(BaseModel):
     id_registro: str = Field(pattern=r"^(GBR|FWA|FTG)-\d{6}$")
     sha256_texto: str = Field(pattern=r"^[0-9a-f]{64}$")
     categorias: list[str] = Field(max_length=8)
-    trecho: str = Field(default="", max_length=100000)
+    # O campo legado pode resumir oito evidências de até 100.000 caracteres cada.
+    trecho: str = Field(default="", max_length=800000)
+    evidencias_por_categoria: dict[str, str] = Field(default_factory=dict, max_length=8)
     nenhuma: bool = False
     consentimento: Literal[True]
     consentimento_versao: str = Field(max_length=40)
@@ -141,8 +144,15 @@ def receber_anotacao(anotacao: Anotacao):
     try:
         email = validar_email(anotacao.email)
         texto = anonimizar_texto(registro["texto"])
-        validar_anotacao(texto, anotacao.categorias, anotacao.trecho, anotacao.nenhuma)
-        trecho = anonimizar_texto(anotacao.trecho, referencia=registro["texto"])
+        evidencias = anotacao.evidencias_por_categoria
+        if not evidencias and anotacao.trecho.strip() and len(anotacao.categorias) == 1:
+            evidencias = {anotacao.categorias[0]: anotacao.trecho}
+        validar_anotacao(texto, anotacao.categorias, evidencias, anotacao.nenhuma)
+        evidencias = {categoria: anonimizar_texto(trecho, referencia=registro["texto"])
+                      for categoria, trecho in evidencias.items()}
+        trecho = "\n".join(passagem
+                           for evidencia in evidencias.values()
+                           for passagem in evidencia.splitlines())
     except ValueError as erro:
         raise HTTPException(422, str(erro)) from None
     try:
@@ -152,13 +162,15 @@ def receber_anotacao(anotacao: Anotacao):
             resultado = conexao.execute("""INSERT INTO anotacoes
                 (id, sessao_id, nome, email, ip, id_registro, base_origem,
                  sha256_texto, estrategias_identificadas, evidencia_textual,
-                 consentimento_versao, consentimento_hash, consentimento_em, consentimento)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s)
+                 consentimento_versao, consentimento_hash, consentimento_em, consentimento,
+                 evidencias_por_categoria)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s,%s::jsonb)
                 ON CONFLICT DO NOTHING RETURNING id""",
                 (str(anotacao.id), str(anotacao.sessao_id), anotacao.nome.strip(), email,
                  anotacao.ip, registro["id_registro"], registro["base_origem"], registro["sha256_texto"],
                  json.dumps(list(dict.fromkeys(anotacao.categorias)), ensure_ascii=False), trecho.strip(),
-                 anotacao.consentimento_versao, anotacao.consentimento_hash, anotacao.consentimento_em, True))
+                 anotacao.consentimento_versao, anotacao.consentimento_hash, anotacao.consentimento_em, True,
+                 json.dumps(evidencias, ensure_ascii=False)))
             criada = resultado.fetchone() is not None
             liberar_reserva(conexao, str(anotacao.sessao_id), str(anotacao.id))
     except RegistroIndisponivel as erro:

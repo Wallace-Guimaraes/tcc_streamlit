@@ -31,7 +31,8 @@ class TestesAPI(unittest.TestCase):
         self.cliente = TestClient(api.app)
         self.dados = {"id": str(uuid4()), "sessao_id": str(uuid4()), "nome": "Pessoa de teste", "email": "pessoa@example.org",
                       "ip": None, "id_registro": "FWA-000001", "sha256_texto": self.registro["sha256_texto"],
-                      "categorias": ["Urgência"], "trecho": texto, "nenhuma": False}
+                      "categorias": ["Urgência"], "trecho": texto,
+                      "evidencias_por_categoria": {"Urgência": texto}, "nenhuma": False}
         self.dados.update(registrar_aceite("Pessoa de teste", "pessoa@example.org", True))
 
     def enviar(self, dados=None):
@@ -51,18 +52,21 @@ class TestesAPI(unittest.TestCase):
         self.assertEqual(parametros[6], "FRAUDWHATSAPP_BR")
         self.assertEqual(parametros[3], "pessoa@example.org")
         self.assertEqual(json.loads(parametros[8]), ["Urgência"])
-        self.assertTrue(parametros[-1])
-        self.assertEqual(self.enviar(dict(self.dados, trecho="Passagem inventada")).status_code, 422)
+        self.assertTrue(parametros[13])
+        self.assertEqual(json.loads(parametros[14]), {"Urgência": "Confirme hoje."})
+        self.assertEqual(self.enviar(dict(self.dados, evidencias_por_categoria={"Urgência": "Passagem inventada"})).status_code, 422)
         self.assertEqual(self.enviar(dict(self.dados, sha256_texto="0"*64)).status_code, 422)
 
     def test_nenhuma_aceita_trecho_vazio_e_vazio_sem_decisao_e_recusado(self):
-        self.assertEqual(self.enviar(dict(self.dados, categorias=[], trecho="", nenhuma=True)).status_code, 200)
+        self.assertEqual(self.enviar(dict(self.dados, categorias=[], trecho="",
+                                          evidencias_por_categoria={}, nenhuma=True)).status_code, 200)
         self.assertEqual(self.enviar(dict(self.dados, categorias=[], trecho="", nenhuma=False)).status_code, 422)
 
     def test_validacoes_impedem_gravacao_antes_de_abrir_banco(self):
         for alteracoes in ({'categorias': ['Urgência'], 'trecho': ''},
                            {'categorias': ['Urgência', 'Medo'], 'trecho': ''},
-                           {'categorias': ['Urgência', 'Medo'], 'trecho': 'Inventado'},
+                           {'categorias': ['Urgência', 'Medo'], 'trecho': 'Inventado',
+                            'evidencias_por_categoria': {'Urgência': 'Inventado', 'Medo': 'Inventado'}},
                            {'nenhuma': True}, {'id_registro': 'GBR-999999'},
                            {'sha256_texto': '0' * 64},
                            {'id_registro': 'GBR-000001'},
@@ -85,6 +89,7 @@ class TestesAPI(unittest.TestCase):
         for trecho in (tratado, '[PESSOA].'):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho},
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 200)
             parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
                               if 'INSERT INTO anotacoes' in chamada.args[0])
@@ -93,6 +98,7 @@ class TestesAPI(unittest.TestCase):
         for trecho in (original, 'MARIA DA SILVA.', 'Confirme em t.me/exemplo.'):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho},
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 422)
             self.conexao.execute.assert_not_called()
 
@@ -111,6 +117,7 @@ class TestesAPI(unittest.TestCase):
         for trecho, esperado in ((tratado, tratado), ('[USUARIO]', '[USUARIO]')):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho},
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 200)
             parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
                               if 'INSERT INTO anotacoes' in chamada.args[0])
@@ -119,6 +126,7 @@ class TestesAPI(unittest.TestCase):
         for trecho in (original, '@bottelegram'):
             self.conexao.execute.reset_mock()
             self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho},
                                              sha256_texto=self.registro['sha256_texto'])).status_code, 422)
             self.conexao.execute.assert_not_called()
 
@@ -173,14 +181,18 @@ class TestesAPI(unittest.TestCase):
         self.assertEqual(resposta.json()['registro']['texto'], tratado)
         self.assertEqual(resposta.json()['registro']['sha256_texto'], self.dados['sha256_texto'])
         self.assertEqual(self.registro['texto'], original)
-        for trecho in (original, tratado, 'Maria da Silva usa contato@exemplo.org'):
+        for trecho in (tratado, '[PESSOA] usa [EMAIL]'):
             self.conexao.execute.reset_mock()
-            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho)).status_code, 200)
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho})).status_code, 200)
             parametros = next(chamada.args[1] for chamada in self.conexao.execute.call_args_list
                               if 'INSERT INTO anotacoes' in chamada.args[0])
             self.assertEqual(parametros[2:4], ('Pessoa de teste', 'pessoa@example.org'))
             self.assertNotIn('Maria da Silva', parametros[9])
             self.assertNotIn('contato@exemplo.org', parametros[9])
+        for trecho in (original, 'Maria da Silva usa contato@exemplo.org'):
+            self.assertEqual(self.enviar(dict(self.dados, trecho=trecho,
+                                             evidencias_por_categoria={'Urgência': trecho})).status_code, 422)
         self.assertEqual(self.enviar(dict(self.dados, trecho='Me chamo Pessoa Inventada.')).status_code, 422)
 
 
